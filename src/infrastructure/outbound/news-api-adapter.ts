@@ -1,22 +1,32 @@
-import type { NewsItem } from "../../types/index.js";
-import { logger } from "../../utils/logger.js";
+import type { NewsItem } from '../../types/index.js';
+import { logger } from '../../utils/logger.js';
+import { browserNewsCollector } from '../../browser/news-collector.js';
 
 export interface NewsSource {
   name: string;
   baseUrl: string;
   fetch: (date: string) => Promise<NewsItem[]>;
+  useBrowser?: boolean;
 }
 
 export class SinaFinanceAdapter {
   async fetchNews(date: string): Promise<NewsItem[]> {
     try {
-      // TODO: 实现新浪财经 API 调用
-      // 这里使用模拟数据用于开发
-      logger.info({ date }, "Fetching news from Sina Finance (mock)");
+      logger.info({ date }, 'Fetching news from Sina Finance');
 
-      return this.getMockNews(date, "sina");
+      if (process.env.USE_BROWSER_FOR_NEWS === 'true') {
+        logger.info({ date }, 'Using browser to fetch Sina news');
+
+        const browser = await import('../../browser/news-collector.js');
+
+        const news = await browser.browserNewsCollector.collectNews(date);
+
+        return news.filter((n) => n.source === 'sina');
+      }
+
+      return this.getMockNews(date, 'sina');
     } catch (error) {
-      logger.error({ error, date }, "Failed to fetch news from Sina");
+      logger.error({ error, date }, 'Failed to fetch news from Sina');
       return [];
     }
   }
@@ -26,29 +36,29 @@ export class SinaFinanceAdapter {
     const mockNews: NewsItem[] = [
       {
         id: `${source}-1`,
-        title: "地缘政治紧张局势升级，原油价格大幅上涨",
+        title: '地缘政治紧张局势升级，原油价格大幅上涨',
         content:
-          "中东地区局势紧张，国际原油价格今日大幅上涨超过 3%，分析师预计可能影响航运成本和能源行业...",
+          '中东地区局势紧张，国际原油价格今日大幅上涨超过 3%，分析师预计可能影响航运成本和能源行业...',
         source,
-        url: "https://example.com/news/1",
+        url: 'https://example.com/news/1',
         publishedAt: new Date(date).getTime(),
       },
       {
         id: `${source}-2`,
-        title: "央行宣布维持利率不变，符合市场预期",
+        title: '央行宣布维持利率不变，符合市场预期',
         content:
-          "中国人民银行今日宣布维持贷款市场报价利率（LPR）不变，符合市场预期。分析师认为...",
+          '中国人民银行今日宣布维持贷款市场报价利率（LPR）不变，符合市场预期。分析师认为...',
         source,
-        url: "https://example.com/news/2",
+        url: 'https://example.com/news/2',
         publishedAt: new Date(date).getTime(),
       },
       {
         id: `${source}-3`,
-        title: "新能源汽车行业迎来政策利好，补贴延续",
+        title: '新能源汽车行业迎来政策利好，补贴延续',
         content:
-          "工信部发布新政策，宣布延续新能源汽车购置补贴政策，行业迎来重大利好...",
+          '工信部发布新政策，宣布延续新能源汽车购置补贴政策，行业迎来重大利好...',
         source,
-        url: "https://example.com/news/3",
+        url: 'https://example.com/news/3',
         publishedAt: new Date(date).getTime(),
       },
     ];
@@ -60,12 +70,21 @@ export class SinaFinanceAdapter {
 export class EastMoneyAdapter {
   async fetchNews(date: string): Promise<NewsItem[]> {
     try {
-      logger.info({ date }, "Fetching news from East Money (mock)");
+      logger.info({ date }, 'Fetching news from East Money');
 
-      // TODO: 实现东方财富 API 调用
-      return this.getMockNews(date, "eastmoney");
+      if (process.env.USE_BROWSER_FOR_NEWS === 'true') {
+        logger.info({ date }, 'Using browser to fetch East Money news');
+
+        const browser = await import('../../browser/news-collector.js');
+
+        const news = await browser.browserNewsCollector.collectNews(date);
+
+        return news.filter((n) => n.source === 'eastmoney');
+      }
+
+      return this.getMockNews(date, 'eastmoney');
     } catch (error) {
-      logger.error({ error, date }, "Failed to fetch news from East Money");
+      logger.error({ error, date }, 'Failed to fetch news from East Money');
       return [];
     }
   }
@@ -74,20 +93,20 @@ export class EastMoneyAdapter {
     const mockNews: NewsItem[] = [
       {
         id: `${source}-1`,
-        title: "全球芯片短缺持续，汽车行业受影响",
+        title: '全球芯片短缺持续，汽车行业受影响',
         content:
-          "全球半导体供应短缺问题持续，多家汽车制造商宣布减产。分析师认为这可能影响整个产业链...",
+          '全球半导体供应短缺问题持续，多家汽车制造商宣布减产。分析师认为这可能影响整个产业链...',
         source,
-        url: "https://example.com/news/4",
+        url: 'https://example.com/news/4',
         publishedAt: new Date(date).getTime(),
       },
       {
         id: `${source}-2`,
-        title: "房地产行业政策调整，多个城市放松限购",
+        title: '房地产行业政策调整，多个城市放松限购',
         content:
-          "近期多个城市宣布放松房地产限购政策，市场反应积极。分析师认为...",
+          '近期多个城市宣布放松房地产限购政策，市场反应积极。分析师认为...',
         source,
-        url: "https://example.com/news/5",
+        url: 'https://example.com/news/5',
         publishedAt: new Date(date).getTime(),
       },
     ];
@@ -99,12 +118,21 @@ export class EastMoneyAdapter {
 export class Jin10Adapter {
   async fetchNews(date: string): Promise<NewsItem[]> {
     try {
-      logger.info({ date }, "Fetching news from Jin10 (mock)");
+      logger.info({ date }, 'Fetching news from Jin10');
 
-      // TODO: 实现金十数据 API 调用
-      return this.getMockNews(date, "jin10");
+      if (process.env.USE_BROWSER_FOR_NEWS === 'true') {
+        logger.info({ date }, 'Using browser to fetch Jin10 news');
+
+        const browser = await import('../../browser/news-collector.js');
+
+        const news = await browser.browserNewsCollector.collectNews(date);
+
+        return news.filter((n) => n.source === 'jin10');
+      }
+
+      return this.getMockNews(date, 'jin10');
     } catch (error) {
-      logger.error({ error, date }, "Failed to fetch news from Jin10");
+      logger.error({ error, date }, 'Failed to fetch news from Jin10');
       return [];
     }
   }
@@ -113,11 +141,11 @@ export class Jin10Adapter {
     const mockNews: NewsItem[] = [
       {
         id: `${source}-1`,
-        title: "美联储会议纪要显示鹰派立场",
+        title: '美联储会议纪要显示鹰派立场',
         content:
-          "美联储最新会议纪要显示，多数官员支持继续加息以抑制通胀。美元走强，黄金价格承压...",
+          '美联储最新会议纪要显示，多数官员支持继续加息以抑制通胀。美元走强，黄金价格承压...',
         source,
-        url: "https://example.com/news/6",
+        url: 'https://example.com/news/6',
         publishedAt: new Date(date).getTime(),
       },
     ];
@@ -135,7 +163,7 @@ export class NewsCollector {
   ];
 
   async collectNews(date: string): Promise<NewsItem[]> {
-    logger.info({ date }, "Collecting news from all sources");
+    logger.info({ date }, 'Collecting news from all sources');
 
     const results = await Promise.allSettled(
       this.adapters.map((adapter) => adapter.fetchNews(date)),
@@ -144,12 +172,12 @@ export class NewsCollector {
     const allNews: NewsItem[] = [];
 
     results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         allNews.push(...result.value);
       } else {
         logger.warn(
           { source: index, error: result.reason },
-          "Failed to fetch from source",
+          'Failed to fetch from source',
         );
       }
     });
@@ -158,7 +186,7 @@ export class NewsCollector {
     const deduplicated = this.deduplicateNews(allNews);
     deduplicated.sort((a, b) => b.publishedAt - a.publishedAt);
 
-    logger.info({ count: deduplicated.length }, "News collection completed");
+    logger.info({ count: deduplicated.length }, 'News collection completed');
     return deduplicated;
   }
 

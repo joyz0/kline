@@ -1,0 +1,100 @@
+{
+  // ==================== 服务器配置 ====================
+  server: {
+    // 默认：PORT=3000, HOST=localhost
+    port: '${env:PORT}',
+    host: '${env:HOST}',
+  },
+
+  // ==================== Redis 配置 ====================
+  redis: {
+    // 默认：REDIS_HOST=localhost, REDIS_PORT=6379, REDIS_PASSWORD=''
+    host: '${env:REDIS_HOST}',
+    port: '${env:REDIS_PORT}',
+    password: '${env:REDIS_PASSWORD}',
+  },
+
+  // ==================== 数据库配置 (Phase 2) ====================
+  databases: {
+    // Neo4j 图数据库
+    neo4j: {
+      enabled: false,
+      // 默认：NEO4J_URI='bolt://localhost:7687', NEO4J_USER='neo4j', NEO4J_PASSWORD='neo4j'
+      uri: '${env:NEO4J_URI}',
+      user: '${env:NEO4J_USER}',
+      password: '${env:NEO4J_PASSWORD}',
+    },
+
+    // LanceDB 向量数据库
+    lancedb: {
+      enabled: false,
+      // 默认：LANCEDB_PATH='./data/lancedb'
+      path: '${env:LANCEDB_PATH}',
+    },
+  },
+
+  // ==================== LLM 配置 ====================
+  llm: {
+    // 提供商：qwen | openai (默认：qwen)
+    provider: '${env:LLM_PROVIDER}',
+
+    // 通义千问配置
+    qwen: {
+      // 默认：QWEN_API_KEY='', QWEN_BASE_URL='https://dashscope.aliyuncs.com/compatible-mode/v1'
+      apiKey: '${env:QWEN_API_KEY}',
+      baseUrl: '${env:QWEN_BASE_URL}',
+      model: 'qwen-plus', // qwen-plus, qwen-max, qwen-turbo
+    },
+
+    // OpenAI 配置
+    openai: {
+      // 默认：OPENAI_API_KEY=''
+      apiKey: '${env:OPENAI_API_KEY}',
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4',
+    },
+  },
+
+  // ==================== 浏览器控制配置 ====================
+  browser: {
+    enabled: true,
+    defaultProfile: 'default',
+    profiles: {
+      default: {
+        cdpPort: 18800,
+        userDataDir: './data/browsers/default/user-data',
+        headless: false,
+        executablePath: '', // 可选，留空自动检测
+        extraArgs: ['--disable-gpu', '--no-sandbox'],
+        color: '#FF4500',
+      },
+      finance: {
+        cdpPort: 18801,
+        userDataDir: './data/browsers/finance/user-data',
+        headless: false,
+        extraArgs: ['--disable-gpu', '--no-sandbox'],
+        color: '#00AA00',
+      },
+    },
+  },
+
+  // ==================== 速率限制配置 ====================
+  rateLimit: {
+    // 默认：RATE_LIMIT_MAX=100, RATE_LIMIT_WINDOW=60000
+    max: '${env:RATE_LIMIT_MAX}',
+    window: '${env:RATE_LIMIT_WINDOW}',
+  },
+
+  // ==================== 分析配置 ====================
+  analysis: {
+    // 默认：ANALYSIS_TOP_K=5, ANALYSIS_CONFIDENCE_THRESHOLD=0.7
+    topK: '${env:ANALYSIS_TOP_K}',
+    confidenceThreshold: '${env:ANALYSIS_CONFIDENCE_THRESHOLD}',
+  },
+
+  // ==================== 日志配置 ====================
+  logging: {
+    // 默认：LOG_LEVEL=4 (0=fatal, 1=error, 2=warn, 3=info, 4=debug, 5=trace)
+    level: '${env:LOG_LEVEL}',
+  },
+}
