@@ -19,7 +19,7 @@ CLI 命令层 → Gateway RPC 层 → 浏览器控制服务 (HTTP) → CDP/Playw
 - **运行时**: Node.js 22+, TypeScript (ESM)
 - **浏览器控制**: Playwright + CDP (Chrome DevTools Protocol)
 - **HTTP 服务器**: Express.js
-- **CLI**: Commander.js
+- **CLI**: Commander.js + Chalk
 - **配置管理**: JSON 配置文件
 
 ---

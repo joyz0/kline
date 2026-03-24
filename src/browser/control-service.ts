@@ -1,10 +1,15 @@
-import express, { type Express, type Request, type Response, type NextFunction } from "express";
-import { browserLogger, logRequest } from "./logger.js";
-import { loadBrowserConfig } from "./config.js";
-import { ProfileManager } from "./profiles/manager.js";
-import { registerBasicRoutes } from "./routes/basic.js";
-import { registerTabsRoutes } from "./routes/tabs.js";
-import { registerAgentRoutes } from "./routes/agent.js";
+import express, {
+  type Express,
+  type Request,
+  type Response,
+  type NextFunction,
+} from 'express';
+import { browserLogger, logRequest } from './logger.js';
+import { loadBrowserConfig } from './config.js';
+import { ProfileManager } from './profiles/manager.js';
+import { registerBasicRoutes } from './routes/basic.js';
+import { registerTabsRoutes } from './routes/tabs.js';
+import { registerAgentRoutes } from './routes/agent.js';
 
 let serverInstance: Express | null = null;
 let profileManager: ProfileManager | null = null;
