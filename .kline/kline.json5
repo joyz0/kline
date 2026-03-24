@@ -59,6 +59,14 @@
   browser: {
     enabled: true,
     defaultProfile: 'default',
+    security: {
+      authEnabled: true,
+      authSecret: '${env:BROWSER_API_SECRET}',
+      rateLimitEnabled: true,
+      rateLimitMaxRequests: 100,
+      rateLimitWindowMs: 60000,
+      ssrfProtectionEnabled: true,
+    },
     profiles: {
       default: {
         cdpPort: 18800,

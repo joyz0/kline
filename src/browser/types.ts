@@ -21,10 +21,20 @@ export interface BrowserProfileInput {
   color?: string;
 }
 
+export interface BrowserSecurityConfig {
+  authEnabled: boolean;
+  authSecret?: string;
+  rateLimitEnabled: boolean;
+  rateLimitMaxRequests: number;
+  rateLimitWindowMs: number;
+  ssrfProtectionEnabled: boolean;
+}
+
 export interface BrowserConfig {
   enabled: boolean;
   defaultProfile: string;
   profiles: Record<string, BrowserProfile>;
+  security?: BrowserSecurityConfig;
 }
 
 export interface RunningChrome {

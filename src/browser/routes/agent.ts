@@ -6,7 +6,9 @@ import {
   BrowserNotStartedError,
   BrowserTabNotFoundError,
   ElementNotFoundError,
+  InvalidUrlError,
 } from "../errors.js";
+import { validateUrl } from "../security/ssrf-protection.js";
 import type {
   SnapshotOptions,
   ScreenshotOptions,
@@ -334,6 +336,14 @@ export function registerAgentRoutes(
         });
       }
 
+      if (!validateUrl(url)) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Invalid URL. Private IP addresses and non-HTTP protocols are not allowed.",
+          code: "INVALID_URL",
+        });
+      }
+
       const browser = await profileManager.getBrowser(profile as string);
 
       if (!browser) {
@@ -387,6 +397,14 @@ export function registerAgentRoutes(
         return res.status(404).json({
           error: "Tab not found",
           message: error.message,
+        });
+      }
+
+      if (error instanceof InvalidUrlError) {
+        return res.status(400).json({
+          error: "Invalid URL",
+          message: error.message,
+          code: "INVALID_URL",
         });
       }
 

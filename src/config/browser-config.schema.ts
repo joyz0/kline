@@ -10,11 +10,22 @@ const browserProfileSchema = z.object({
   color: z.string().optional(),
 });
 
+const browserSecurityConfigSchema = z.object({
+  authEnabled: z.boolean().default(false),
+  authSecret: z.string().optional(),
+  rateLimitEnabled: z.boolean().default(true),
+  rateLimitMaxRequests: z.number().default(100),
+  rateLimitWindowMs: z.number().default(60000),
+  ssrfProtectionEnabled: z.boolean().default(true),
+});
+
 export const browserConfigSchema = z.object({
   enabled: z.boolean().default(true),
   defaultProfile: z.string().default("default"),
   profiles: z.record(z.string(), browserProfileSchema),
+  security: browserSecurityConfigSchema.optional(),
 });
 
 export type BrowserConfig = z.infer<typeof browserConfigSchema>;
 export type BrowserProfile = z.infer<typeof browserProfileSchema>;
+export type BrowserSecurityConfig = z.infer<typeof browserSecurityConfigSchema>;

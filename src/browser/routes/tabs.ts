@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { browserLogger } from "../logger.js";
 import type { ProfileManager } from "../profiles/manager.js";
-import { BrowserTabNotFoundError, BrowserNotStartedError } from "../errors.js";
+import { BrowserTabNotFoundError, BrowserNotStartedError, InvalidUrlError } from "../errors.js";
+import { validateUrl } from "../security/ssrf-protection.js";
 
 export function registerTabsRoutes(
   app: Express,
@@ -67,6 +68,14 @@ export function registerTabsRoutes(
         });
       }
 
+      if (!validateUrl(url)) {
+        return res.status(400).json({
+          error: "Bad Request",
+          message: "Invalid URL. Private IP addresses and non-HTTP protocols are not allowed.",
+          code: "INVALID_URL",
+        });
+      }
+
       const browser = await profileManager.getBrowser(profile as string);
 
       if (!browser) {
@@ -98,6 +107,14 @@ export function registerTabsRoutes(
         return res.status(503).json({
           error: "Browser not started",
           message: error.message,
+        });
+      }
+
+      if (error instanceof InvalidUrlError) {
+        return res.status(400).json({
+          error: "Invalid URL",
+          message: error.message,
+          code: "INVALID_URL",
         });
       }
 
