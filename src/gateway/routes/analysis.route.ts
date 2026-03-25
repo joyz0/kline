@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { Express, Request, Response } from 'express';
 import { analysisQueue } from '../../infrastructure/queue/analysis-queue.js';
 import { logger } from '../../logging/index.js';
 import { z } from 'zod';
@@ -7,81 +7,78 @@ const submitAnalysisSchema = z.object({
   selectedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
 });
 
-export async function registerAnalysisRoutes(server: FastifyInstance) {
-  // 提交分析任务
-  server.post('/api/analyze', async (request, reply) => {
+export async function registerAnalysisRoutes(app: Express) {
+  app.post('/api/analyze', async (req: Request, res: Response) => {
     try {
-      const body = submitAnalysisSchema.parse(request.body);
+      const body = submitAnalysisSchema.parse(req.body);
 
       const taskId = await analysisQueue.addAnalysisJob(body.selectedDate);
 
       logger.info({ taskId, date: body.selectedDate }, 'Analysis task created');
 
-      return reply.status(201).send({
+      return res.status(201).json({
         taskId,
         status: 'PENDING',
         message: 'Analysis task created successfully',
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return reply.status(400).send({
+        return res.status(400).json({
           error: 'Validation Error',
           message: error.errors.map((e) => e.message).join(', '),
         });
       }
 
       logger.error({ error }, 'Failed to create analysis task');
-      return reply.status(500).send({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to create analysis task',
       });
     }
   });
 
-  // 查询任务状态
-  server.get('/api/tasks/:taskId', async (request, reply) => {
+  app.get('/api/tasks/:taskId', async (req: Request, res: Response) => {
     try {
-      const { taskId } = request.params as { taskId: string };
+      const { taskId } = req.params as { taskId: string };
 
       const task = await analysisQueue.getJobStatus(taskId);
 
       if (!task) {
-        return reply.status(404).send({
+        return res.status(404).json({
           error: 'Not Found',
           message: 'Task not found',
         });
       }
 
-      return reply.send(task);
+      return res.json(task);
     } catch (error) {
       logger.error({ error }, 'Failed to get task status');
-      return reply.status(500).send({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to get task status',
       });
     }
   });
 
-  // 取消任务
-  server.delete('/api/tasks/:taskId', async (request, reply) => {
+  app.delete('/api/tasks/:taskId', async (req: Request, res: Response) => {
     try {
-      const { taskId } = request.params as { taskId: string };
+      const { taskId } = req.params as { taskId: string };
 
       const cancelled = await analysisQueue.cancelJob(taskId);
 
       if (!cancelled) {
-        return reply.status(404).send({
+        return res.status(404).json({
           error: 'Not Found',
           message: 'Task not found or already completed',
         });
       }
 
-      return reply.send({
+      return res.json({
         message: 'Task cancelled successfully',
       });
     } catch (error) {
       logger.error({ error }, 'Failed to cancel task');
-      return reply.status(500).send({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to cancel task',
       });

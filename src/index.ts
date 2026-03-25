@@ -1,16 +1,13 @@
-import { buildServer } from './gateway/server.js';
+import { buildExpressServer, closeExpressServer } from './gateway/express-server.js';
 import { analysisQueue } from './infrastructure/queue/analysis-queue.js';
 import { taskOrchestrator } from './gateway/task-orchestrator.js';
 import { logger } from './logging/index.js';
-import { ConfigLoader } from './config/index.js';
-
-const config = ConfigLoader.getInstance().getConfig();
 
 async function bootstrap() {
-  logger.info('Starting Kline server...');
+  logger.info({ subsystem: 'gateway' }, 'Starting Kline server...');
 
-  // 构建服务器
-  const server = await buildServer();
+  // 构建 Express 服务器
+  const expressServer = await buildExpressServer();
 
   // 注册队列处理器
   const queue = analysisQueue.getQueue();
@@ -25,32 +22,21 @@ async function bootstrap() {
     await taskOrchestrator.processAnalysisTask(taskId, selectedDate);
   });
 
-  // 启动服务器
-  try {
-    await server.listen({
-      port: config.server.port,
-      host: config.server.host,
+  logger.info(
+    { host: '0.0.0.0', port: expressServer.port },
+    `Server is running on http://0.0.0.0:${expressServer.port}`,
+  );
+
+  // 处理优雅关闭
+  const signals = ['SIGINT', 'SIGTERM'];
+
+  signals.forEach((signal) => {
+    process.on(signal, async () => {
+      logger.info({ signal }, `Received ${signal}, shutting down gracefully...`);
+      await closeExpressServer(expressServer);
+      process.exit(0);
     });
-
-    logger.info(
-      { host: config.server.host, port: config.server.port },
-      `Server is running on http://${config.server.host}:${config.server.port}`,
-    );
-
-    // 处理优雅关闭
-    const signals = ['SIGINT', 'SIGTERM'];
-
-    signals.forEach((signal) => {
-      process.on(signal, async () => {
-        logger.info({ signal }, `Received ${signal}, shutting down gracefully...`);
-        await server.close();
-        process.exit(0);
-      });
-    });
-  } catch (error) {
-    logger.error({ error }, 'Failed to start server');
-    process.exit(1);
-  }
+  });
 }
 
 // 启动应用

@@ -1,41 +1,39 @@
-import type { FastifyInstance } from 'fastify';
+import type { Express, Request, Response } from 'express';
 import { logger } from '../../logging/index.js';
 
 // MVP: 简单缓存报告
 const reportCache = new Map<string, any>();
 
-export async function registerReportRoutes(server: FastifyInstance) {
-  // 获取分析报告
-  server.get('/api/reports/:reportId', async (request, reply) => {
+export async function registerReportRoutes(app: Express) {
+  app.get('/api/reports/:reportId', async (req: Request, res: Response) => {
     try {
-      const { reportId } = request.params as { reportId: string };
+      const { reportId } = req.params as { reportId: string };
 
       const report = reportCache.get(reportId);
 
       if (!report) {
-        return reply.status(404).send({
+        return res.status(404).json({
           error: 'Not Found',
           message: 'Report not found',
         });
       }
 
-      return reply.send(report);
+      return res.json(report);
     } catch (error) {
       logger.error({ error }, 'Failed to get report');
-      return reply.status(500).send({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to get report',
       });
     }
   });
 
-  // 获取指定日期的报告
-  server.get('/api/reports', async (request, reply) => {
+  app.get('/api/reports', async (req: Request, res: Response) => {
     try {
-      const { date } = request.query as { date?: string };
+      const { date } = req.query as { date?: string };
 
       if (!date) {
-        return reply.status(400).send({
+        return res.status(400).json({
           error: 'Bad Request',
           message: 'Date parameter is required',
         });
@@ -46,10 +44,10 @@ export async function registerReportRoutes(server: FastifyInstance) {
         (r) => r.selectedDate === date,
       );
 
-      return reply.send(reports);
+      return res.json(reports);
     } catch (error) {
       logger.error({ error }, 'Failed to list reports');
-      return reply.status(500).send({
+      return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Failed to list reports',
       });

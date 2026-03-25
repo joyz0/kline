@@ -1,6 +1,5 @@
-import type { FastifyInstance } from 'fastify';
-import type { FastifyRequest } from 'fastify/types/request';
-import type { SocketStream } from '@fastify/websocket';
+import type { WebSocketServer } from 'ws';
+import type { IncomingMessage } from 'http';
 import { logger } from '../../logging/index.js';
 import { dispatchBrowserRequest } from '../server-methods/browser.js';
 
@@ -156,7 +155,7 @@ export function getWebSocketSessionManager(): WebSocketSessionManager {
 /**
  * 设置浏览器 WebSocket 处理器
  */
-export function setupBrowserWebSocket(server: FastifyInstance) {
+export function setupBrowserWebSocket(wsServer: WebSocketServer) {
   // 定期清理空闲会话（每 1 分钟）
   const cleanupInterval = setInterval(() => {
     const cleaned = sessionManager.cleanupIdleSessions();
@@ -165,15 +164,15 @@ export function setupBrowserWebSocket(server: FastifyInstance) {
     }
   }, 60000);
 
-  // 确保服务器关闭时清理定时器
-  server.addHook('onClose', async () => {
-    clearInterval(cleanupInterval);
-    logger.info({ subsystem: 'gateway', websocket: true }, 'WebSocket cleanup interval stopped');
-  });
+  // WebSocket 连接处理
+  wsServer.on('connection', (socket: any, req: IncomingMessage) => {
+    const url = new URL(req.url || '', `http://${req.headers.host}`);
+    
+    // 只处理 /gateway/browser/ws 路径的连接
+    if (url.pathname !== '/gateway/browser/ws') {
+      return;
+    }
 
-  // WebSocket 端点
-  server.get('/gateway/browser/ws', { websocket: true }, async (connection: SocketStream, req: FastifyRequest) => {
-    const { socket } = connection;
     const sessionId = generateSessionId();
     
     logger.info(
@@ -242,7 +241,6 @@ export function setupBrowserWebSocket(server: FastifyInstance) {
           path: msg.path,
           query: msg.query,
           body: msg.body,
-          timeoutMs: msg.timeoutMs,
         });
 
         // 发送成功响应
@@ -284,16 +282,21 @@ export function setupBrowserWebSocket(server: FastifyInstance) {
     });
   });
 
-  // 获取会话统计端点
-  server.get('/gateway/browser/ws/stats', async (request, reply) => {
-    return {
-      activeSessions: sessionManager.getSessionCount(),
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
-    };
-  });
+  // 清理定时器存储
+  (wsServer as any).cleanupInterval = cleanupInterval;
 
   logger.info({ subsystem: 'gateway', websocket: true }, 'Browser WebSocket handler registered');
+}
+
+/**
+ * 停止 WebSocket 服务
+ */
+export function stopBrowserWebSocket(wsServer: WebSocketServer): void {
+  const cleanupInterval = (wsServer as any).cleanupInterval;
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    logger.info({ subsystem: 'gateway', websocket: true }, 'WebSocket cleanup interval stopped');
+  }
 }
 
 /**
