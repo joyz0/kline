@@ -16,6 +16,8 @@ import {
   createRateLimitMiddleware,
   createSecurityHeadersMiddleware,
 } from './security/index.js';
+import { createTimeoutMiddleware } from './middleware/timeout.js';
+import { withTimeout, TimeoutError, ConnectionError } from './errors.js';
 
 let httpServer: Server | null = null;
 let expressApp: Express | null = null;
@@ -52,6 +54,9 @@ export async function startBrowserControlService(): Promise<BrowserServiceState>
   app.use(express.json());
 
   app.use(createSecurityHeadersMiddleware());
+
+  // 添加超时中间件（默认 30 秒）
+  app.use(createTimeoutMiddleware(30000));
 
   const securityConfig = config.security;
 
@@ -102,24 +107,47 @@ export async function startBrowserControlService(): Promise<BrowserServiceState>
 
   const port = 18791;
 
-  await new Promise<void>((resolve, reject) => {
-    httpServer = app.listen(port, '127.0.0.1', (err?: Error) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+  // 使用超时和重试机制启动服务
+  await withTimeout(
+    async () => {
+      return new Promise<void>((resolve, reject) => {
+        httpServer = app.listen(port, '127.0.0.1', (err?: Error) => {
+          if (err) {
+            reject(new ConnectionError(`Failed to start browser service: ${err.message}`));
+            return;
+          }
 
-      browserLogger.info(
-        {
-          port,
-          host: '127.0.0.1',
-          subsystem: 'browser',
-        },
-        'Browser control service started',
-      );
-      resolve();
-    });
-  });
+          browserLogger.info(
+            {
+              port,
+              host: '127.0.0.1',
+              subsystem: 'browser',
+            },
+            'Browser control service started',
+          );
+          resolve();
+        });
+        
+        // 监听错误
+        httpServer!.once('error', (err: any) => {
+          if (err.code === 'EADDRINUSE') {
+            reject(new ConnectionError(`Port ${port} is already in use`, { retryAfter: 2000 }));
+          } else {
+            reject(new ConnectionError(`Server error: ${err.message}`));
+          }
+        });
+      });
+    },
+    10000, // 10 秒超时
+    {
+      maxRetries: 2,
+      initialDelay: 1000,
+      shouldRetry: (error) => {
+        // 只在端口被占用或连接错误时重试
+        return error instanceof ConnectionError || error.message.includes('EADDRINUSE');
+      },
+    },
+  );
 
   expressApp = app;
 

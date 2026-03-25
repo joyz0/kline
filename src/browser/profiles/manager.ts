@@ -1,4 +1,4 @@
-import { chromium, type Browser } from 'playwright';
+import { chromium, type Browser, type BrowserContext } from 'playwright';
 import { browserLogger } from '../logger.js';
 import type { BrowserProfile, RunningChrome } from '../types.js';
 import { launchChrome, stopChrome } from '../chrome.js';
@@ -6,14 +6,22 @@ import {
   BrowserProfileUnavailableError,
   BrowserNotStartedError,
 } from '../errors.js';
+import { ProfileStorage, getDefaultProfileStorage } from './storage.js';
 
 export class ProfileManager {
   private profiles: Map<string, BrowserProfile> = new Map();
   private browsers: Map<string, Browser> = new Map();
   private chromeProcesses: Map<string, RunningChrome> = new Map();
+  private storage: ProfileStorage;
 
-  constructor(profiles: BrowserProfile[]) {
+  constructor(profiles: BrowserProfile[], storage?: ProfileStorage) {
+    this.storage = storage || getDefaultProfileStorage();
+    
     for (const profile of profiles) {
+      // 自动设置 userDataDir
+      if (!profile.userDataDir) {
+        profile.userDataDir = this.storage.getProfileDir(profile.name);
+      }
       this.profiles.set(profile.name, profile);
     }
   }
@@ -99,6 +107,12 @@ export class ProfileManager {
 
     this.browsers.set(profile.name, browser);
 
+    // 恢复 Cookies（如果有）
+    const contexts = browser.contexts();
+    if (contexts.length > 0) {
+      await this.restoreCookies(profile.name, contexts[0]);
+    }
+
     browser.on('disconnected', () => {
       browserLogger.info(
         { profile: profile.name, subsystem: 'browser' },
@@ -115,6 +129,13 @@ export class ProfileManager {
     const chromeProcess = this.chromeProcesses.get(profileName);
 
     if (browser) {
+      // 保存 Cookies
+      try {
+        await this.saveCookies(profileName, browser);
+      } catch (error) {
+        browserLogger.warn({ profile: profileName, error }, 'Failed to save cookies');
+      }
+
       await browser.close();
       this.browsers.delete(profileName);
     }
@@ -128,6 +149,49 @@ export class ProfileManager {
       { profile: profileName, subsystem: 'browser' },
       'Browser stopped',
     );
+  }
+
+  /**
+   * 保存浏览器的 Cookies
+   */
+  private async saveCookies(profileName: string, browser: Browser): Promise<void> {
+    const contexts = browser.contexts();
+    
+    if (contexts.length === 0) {
+      return;
+    }
+
+    const allCookies: any[] = [];
+
+    for (const context of contexts) {
+      try {
+        const cookies = await context.cookies();
+        allCookies.push(...cookies);
+      } catch (error) {
+        browserLogger.warn({ profile: profileName, error }, 'Failed to get cookies from context');
+      }
+    }
+
+    if (allCookies.length > 0) {
+      await this.storage.saveCookies(profileName, allCookies);
+      browserLogger.info({ profile: profileName, count: allCookies.length }, 'Cookies saved');
+    }
+  }
+
+  /**
+   * 加载并恢复 Cookies
+   */
+  private async restoreCookies(profileName: string, context: BrowserContext): Promise<void> {
+    try {
+      const cookies = await this.storage.loadCookies(profileName);
+      
+      if (cookies.length > 0) {
+        await context.addCookies(cookies);
+        browserLogger.info({ profile: profileName, count: cookies.length }, 'Cookies restored');
+      }
+    } catch (error) {
+      browserLogger.warn({ profile: profileName, error }, 'Failed to restore cookies');
+    }
   }
 
   async stopAll(): Promise<void> {
@@ -171,3 +235,6 @@ export class ProfileContext {
     return this.profile;
   }
 }
+
+// 导出 ProfileStorage 以便外部使用
+export { ProfileStorage } from './storage.js';

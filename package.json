@@ -8,7 +8,6 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "test:cdp": "tsx test/browser/test-cdp-connection.ts",
     "test:playwright": "tsx test/browser/test-playwright-cdp.ts",

@@ -6,6 +6,7 @@ import { logger } from '../logging/index.js';
 import { registerAnalysisRoutes } from './routes/analysis.route.js';
 import { registerReportRoutes } from './routes/report.route.js';
 import { setupWebSocket } from './websocket/progress-handler.js';
+import { setupBrowserWebSocket } from './websocket/browser-ws.js';
 import { closeRedis } from '../infrastructure/queue/redis-client.js';
 import { registerBrowserHandlers } from './server-methods/browser.js';
 
@@ -26,6 +27,7 @@ export async function buildServer(): Promise<FastifyInstance> {
   await registerAnalysisRoutes(server);
   await registerReportRoutes(server);
   await setupWebSocket(server);
+  await setupBrowserWebSocket(server);
   await registerBrowserHandlers(server);
 
   // 健康检查

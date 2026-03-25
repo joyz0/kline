@@ -1,4 +1,6 @@
 import { Command } from 'commander';
+import { callBrowserRequestViaWebSocket, testWebSocketConnection } from './browser-ws-client.js';
+import { logger } from '../logging/index.js';
 
 export function registerBrowserCli(program: Command) {
   const browser = program
@@ -309,40 +311,82 @@ export function registerBrowserCli(program: Command) {
         process.exit(1);
       }
     });
+
+  browser
+    .command('ws-test')
+    .description('Test WebSocket connection to Gateway')
+    .action(async () => {
+      try {
+        console.log('Testing WebSocket connection...\n');
+        
+        const result = await testWebSocketConnection();
+        
+        if (result.connected) {
+          console.log('✓ WebSocket connection successful');
+          console.log(`  Latency: ${result.latency}ms`);
+        } else {
+          console.log('✗ WebSocket connection failed');
+          console.log(`  Error: ${result.error}`);
+          console.log('\nNote: Make sure Gateway is running with WebSocket support');
+          process.exit(1);
+        }
+      } catch (error) {
+        console.error(
+          '✗ WebSocket test failed:',
+          error instanceof Error ? error.message : 'Unknown error',
+        );
+
+        process.exit(1);
+      }
+    });
 }
 
+/**
+ * 调用浏览器服务（优先使用 WebSocket）
+ */
 async function callBrowserRequest(params: {
   method: string;
   path: string;
   query?: Record<string, string>;
   body?: Record<string, unknown>;
+  timeoutMs?: number;
 }): Promise<any> {
-  const url = new URL(params.path, `http://127.0.0.1:18791`);
+  // 尝试使用 WebSocket
+  try {
+    const wsResult = await callBrowserRequestViaWebSocket(params);
+    return wsResult;
+  } catch (wsError) {
+    logger.debug({ error: wsError }, 'WebSocket failed, falling back to HTTP');
+    
+    // WebSocket 失败时使用 HTTP 降级
+    const url = new URL(params.path, `http://127.0.0.1:18791`);
 
-  if (params.query) {
-    Object.entries(params.query).forEach(([key, value]) => {
-      url.searchParams.set(key, value);
-    });
+    if (params.query) {
+      Object.entries(params.query).forEach(([key, value]) => {
+        url.searchParams.set(key, value);
+      });
+    }
+
+    const options: RequestInit = {
+      method: params.method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      signal: AbortSignal.timeout(params.timeoutMs || 30000),
+    };
+
+    if (params.body && params.method.toUpperCase() !== 'GET') {
+      options.body = JSON.stringify(params.body);
+    }
+
+    const response = await fetch(url.toString(), options);
+
+    const responseBody: any = await response.json();
+
+    if (!response.ok) {
+      throw new Error(responseBody.message || `HTTP ${response.status}`);
+    }
+
+    return responseBody;
   }
-
-  const options: RequestInit = {
-    method: params.method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  };
-
-  if (params.body && params.method.toUpperCase() !== 'GET') {
-    options.body = JSON.stringify(params.body);
-  }
-
-  const response = await fetch(url.toString(), options);
-
-  const responseBody: any = await response.json();
-
-  if (!response.ok) {
-    throw new Error(responseBody.message || `HTTP ${response.status}`);
-  }
-
-  return responseBody;
 }
