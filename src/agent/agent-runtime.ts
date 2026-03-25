@@ -1,7 +1,7 @@
-import { analysisGraph } from "./graph/causal-graph.js";
-import { createInitialState } from "./graph/state.js";
-import { logger } from "../utils/logger.js";
-import type { AnalysisReport } from "../types/index.js";
+import { analysisGraph } from './graph/causal-graph.js';
+import { createInitialState } from './graph/state.js';
+import { logger } from '../logging/index.js';
+import type { AnalysisReport } from '../types/index.js';
 
 export interface AnalysisResult {
   success: boolean;
@@ -14,7 +14,7 @@ export class AgentRuntime {
     taskId: string,
     selectedDate: string,
   ): Promise<AnalysisResult> {
-    logger.info({ taskId, selectedDate }, "Starting analysis");
+    logger.info({ taskId, selectedDate }, 'Starting analysis');
 
     try {
       const initialState = createInitialState(taskId, selectedDate);
@@ -24,7 +24,7 @@ export class AgentRuntime {
       if (result.finalReport) {
         logger.info(
           { taskId, reportId: result.finalReport.id },
-          "Analysis completed successfully",
+          'Analysis completed successfully',
         );
 
         return {
@@ -32,7 +32,7 @@ export class AgentRuntime {
           report: result.finalReport,
         };
       } else {
-        logger.warn({ taskId }, "Analysis completed but no report generated");
+        logger.warn({ taskId }, 'Analysis completed but no report generated');
 
         return {
           success: false,
@@ -40,14 +40,14 @@ export class AgentRuntime {
         };
       }
     } catch (error) {
-      logger.error({ error, taskId }, "Analysis failed");
+      logger.error({ error, taskId }, 'Analysis failed');
 
       return {
         success: false,
         errors: [
           {
-            step: "graph_execution",
-            message: error instanceof Error ? error.message : "Unknown error",
+            step: 'graph_execution',
+            message: error instanceof Error ? error.message : 'Unknown error',
           },
         ],
       };

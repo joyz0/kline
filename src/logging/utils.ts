@@ -15,7 +15,7 @@ export function logWithObjectParam(
   message?: string,
 ): void {
   if (message) {
-    logger[method](message, context);
+    logger[method](context, message);
   } else {
     logger[method](context);
   }
@@ -31,12 +31,12 @@ export function logRequest(
   status: number,
   duration: number,
 ): void {
-  logger.info(`${method} ${path} ${status}`, {
+  logger.info({
     method,
     path,
     status,
     duration: `${duration}ms`,
-  });
+  }, `${method} ${path} ${status}`);
 }
 
 /**
@@ -47,8 +47,8 @@ export function logError(
   error: Error,
   context?: Record<string, unknown>,
 ): void {
-  logger.error(error.message, {
+  logger.error({
     error: error.stack || error.message,
     ...context,
-  });
+  }, error.message);
 }

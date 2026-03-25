@@ -1,12 +1,12 @@
-import { FastifyInstance } from "fastify";
-import { logger } from "../../utils/logger.js";
+import type { FastifyInstance } from 'fastify';
+import { logger } from '../../logging/index.js';
 
 // MVP: 简单缓存报告
 const reportCache = new Map<string, any>();
 
 export async function registerReportRoutes(server: FastifyInstance) {
   // 获取分析报告
-  server.get("/api/reports/:reportId", async (request, reply) => {
+  server.get('/api/reports/:reportId', async (request, reply) => {
     try {
       const { reportId } = request.params as { reportId: string };
 
@@ -14,30 +14,30 @@ export async function registerReportRoutes(server: FastifyInstance) {
 
       if (!report) {
         return reply.status(404).send({
-          error: "Not Found",
-          message: "Report not found",
+          error: 'Not Found',
+          message: 'Report not found',
         });
       }
 
       return reply.send(report);
     } catch (error) {
-      logger.error({ error }, "Failed to get report");
+      logger.error({ error }, 'Failed to get report');
       return reply.status(500).send({
-        error: "Internal Server Error",
-        message: "Failed to get report",
+        error: 'Internal Server Error',
+        message: 'Failed to get report',
       });
     }
   });
 
   // 获取指定日期的报告
-  server.get("/api/reports", async (request, reply) => {
+  server.get('/api/reports', async (request, reply) => {
     try {
       const { date } = request.query as { date?: string };
 
       if (!date) {
         return reply.status(400).send({
-          error: "Bad Request",
-          message: "Date parameter is required",
+          error: 'Bad Request',
+          message: 'Date parameter is required',
         });
       }
 
@@ -48,10 +48,10 @@ export async function registerReportRoutes(server: FastifyInstance) {
 
       return reply.send(reports);
     } catch (error) {
-      logger.error({ error }, "Failed to list reports");
+      logger.error({ error }, 'Failed to list reports');
       return reply.status(500).send({
-        error: "Internal Server Error",
-        message: "Failed to list reports",
+        error: 'Internal Server Error',
+        message: 'Failed to list reports',
       });
     }
   });

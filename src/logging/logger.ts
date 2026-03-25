@@ -42,67 +42,65 @@ export class AppLogger {
     });
   }
 
-  debug(message: string | LogContext, context?: LogContext): void {
-    if (typeof message === 'object') {
-      this.logger.debug(message);
-    } else if (context) {
+  debug(context: LogContext, message?: string): void {
+    if (message !== undefined) {
       this.logger.debug(context, message);
     } else {
-      this.logger.debug(message);
+      this.logger.debug(context);
     }
   }
 
-  info(message: string | LogContext, context?: LogContext): void {
-    if (typeof message === 'object') {
-      this.logger.info(message);
-    } else if (context) {
+  info(context: LogContext, message?: string): void {
+    if (message !== undefined) {
       this.logger.info(context, message);
     } else {
-      this.logger.info(message);
+      this.logger.info(context);
     }
   }
 
-  warn(message: string | LogContext, context?: LogContext): void {
-    if (typeof message === 'object') {
-      this.logger.warn(message);
-    } else if (context) {
+  warn(context: LogContext, message?: string): void {
+    if (message !== undefined) {
       this.logger.warn(context, message);
     } else {
-      this.logger.warn(message);
+      this.logger.warn(context);
     }
   }
 
-  error(message: string | LogContext | Error, context?: LogContext): void {
-    if (message instanceof Error) {
-      this.logger.error(message, context);
-    } else if (typeof message === 'object') {
-      this.logger.error(message);
-    } else if (context) {
+  error(context: LogContext | Error, message?: string): void {
+    if (context instanceof Error) {
+      this.logger.error(
+        {
+          error: context.stack || context.message,
+        },
+        context.message,
+      );
+    } else if (message !== undefined) {
       this.logger.error(context, message);
     } else {
-      this.logger.error(message);
+      this.logger.error(context);
     }
   }
 
-  fatal(message: string | LogContext | Error, context?: LogContext): void {
-    if (message instanceof Error) {
-      this.logger.fatal(message, context);
-    } else if (typeof message === 'object') {
-      this.logger.fatal(message);
-    } else if (context) {
+  fatal(context: LogContext | Error, message?: string): void {
+    if (context instanceof Error) {
+      this.logger.fatal(
+        {
+          error: context.stack || context.message,
+        },
+        context.message,
+      );
+    } else if (message !== undefined) {
       this.logger.fatal(context, message);
     } else {
-      this.logger.fatal(message);
+      this.logger.fatal(context);
     }
   }
 
-  trace(message: string | LogContext, context?: LogContext): void {
-    if (typeof message === 'object') {
-      this.logger.trace(message);
-    } else if (context) {
+  trace(context: LogContext, message?: string): void {
+    if (message !== undefined) {
       this.logger.trace(context, message);
     } else {
-      this.logger.trace(message);
+      this.logger.trace(context);
     }
   }
 

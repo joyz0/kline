@@ -1,9 +1,9 @@
-import type { Event, NewsItem } from "../types/index.js";
-import { logger } from "../utils/logger.js";
+import type { Event, NewsItem } from '../types/index.js';
+import { logger } from '../logging/index.js';
 
 export class EventExtractor {
   async extractEvents(newsItems: NewsItem[]): Promise<Event[]> {
-    logger.info({ count: newsItems.length }, "Extracting events from news");
+    logger.info({ count: newsItems.length }, 'Extracting events from news');
 
     const events: Event[] = [];
 
@@ -14,12 +14,12 @@ export class EventExtractor {
       } catch (error) {
         logger.warn(
           { newsId: news.id, error },
-          "Failed to extract events from news",
+          'Failed to extract events from news',
         );
       }
     }
 
-    logger.info({ count: events.length }, "Event extraction completed");
+    logger.info({ count: events.length }, 'Event extraction completed');
     return events;
   }
 
@@ -31,19 +31,19 @@ export class EventExtractor {
 
     // 地缘政治事件关键词
     const geopoliticalKeywords = [
-      "战争",
-      "冲突",
-      "制裁",
-      "外交",
-      "军事",
-      "地缘",
+      '战争',
+      '冲突',
+      '制裁',
+      '外交',
+      '军事',
+      '地缘',
     ];
     if (
       this.containsKeywords(news.title + news.content, geopoliticalKeywords)
     ) {
       events.push({
         id: `event-${news.id}-geo`,
-        type: "GEOPOLITICAL",
+        type: 'GEOPOLITICAL',
         title: news.title,
         description: news.content.substring(0, 200),
         timestamp: news.publishedAt,
@@ -54,18 +54,18 @@ export class EventExtractor {
 
     // 宏观经济事件关键词
     const macroKeywords = [
-      "央行",
-      "利率",
-      "通胀",
-      "就业",
-      "GDP",
-      "经济",
-      "美联储",
+      '央行',
+      '利率',
+      '通胀',
+      '就业',
+      'GDP',
+      '经济',
+      '美联储',
     ];
     if (this.containsKeywords(news.title + news.content, macroKeywords)) {
       events.push({
         id: `event-${news.id}-macro`,
-        type: "MACRO",
+        type: 'MACRO',
         title: news.title,
         description: news.content.substring(0, 200),
         timestamp: news.publishedAt,
@@ -75,11 +75,11 @@ export class EventExtractor {
     }
 
     // 行业事件关键词
-    const industryKeywords = ["行业", "产业", "政策", "补贴", "监管", "市场"];
+    const industryKeywords = ['行业', '产业', '政策', '补贴', '监管', '市场'];
     if (this.containsKeywords(news.title + news.content, industryKeywords)) {
       events.push({
         id: `event-${news.id}-industry`,
-        type: "INDUSTRY",
+        type: 'INDUSTRY',
         title: news.title,
         description: news.content.substring(0, 200),
         timestamp: news.publishedAt,
@@ -89,11 +89,11 @@ export class EventExtractor {
     }
 
     // 政策事件关键词
-    const policyKeywords = ["政策", "规定", "法规", "政府", "部委", "发布"];
+    const policyKeywords = ['政策', '规定', '法规', '政府', '部委', '发布'];
     if (this.containsKeywords(news.title + news.content, policyKeywords)) {
       events.push({
         id: `event-${news.id}-policy`,
-        type: "POLICY",
+        type: 'POLICY',
         title: news.title,
         description: news.content.substring(0, 200),
         timestamp: news.publishedAt,

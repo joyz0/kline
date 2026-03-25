@@ -1,11 +1,11 @@
-import { chromium, type Browser } from "playwright";
-import { browserLogger } from "../logger.js";
-import type { BrowserProfile, RunningChrome } from "../types.js";
-import { launchChrome, stopChrome } from "../chrome.js";
+import { chromium, type Browser } from 'playwright';
+import { browserLogger } from '../logger.js';
+import type { BrowserProfile, RunningChrome } from '../types.js';
+import { launchChrome, stopChrome } from '../chrome.js';
 import {
   BrowserProfileUnavailableError,
   BrowserNotStartedError,
-} from "../errors.js";
+} from '../errors.js';
 
 export class ProfileManager {
   private profiles: Map<string, BrowserProfile> = new Map();
@@ -48,22 +48,22 @@ export class ProfileManager {
 
   private async connectToRemoteCDP(profile: BrowserProfile): Promise<Browser> {
     if (!profile.cdpUrl) {
-      throw new Error("CDP URL is required for remote connection");
+      throw new Error('CDP URL is required for remote connection');
     }
 
     browserLogger.info(
-      { profile: profile.name, cdpUrl: profile.cdpUrl },
-      "Connecting to remote CDP",
+      { profile: profile.name, cdpUrl: profile.cdpUrl, subsystem: 'browser' },
+      'Connecting to remote CDP',
     );
 
     const browser = await chromium.connectOverCDP(profile.cdpUrl);
 
     this.browsers.set(profile.name, browser);
 
-    browser.on("disconnected", () => {
+    browser.on('disconnected', () => {
       browserLogger.info(
-        { profile: profile.name },
-        "Remote browser disconnected",
+        { profile: profile.name, subsystem: 'browser' },
+        'Remote browser disconnected',
       );
       this.browsers.delete(profile.name);
     });
@@ -73,12 +73,14 @@ export class ProfileManager {
 
   private async launchLocalChrome(profile: BrowserProfile): Promise<Browser> {
     browserLogger.info(
-      { profile: profile.name, cdpPort: profile.cdpPort },
-      "Launching local Chrome",
+      { profile: profile.name, cdpPort: profile.cdpPort, subsystem: 'browser' },
+      'Launching local Chrome',
     );
 
     if (!profile.cdpPort || !profile.userDataDir) {
-      throw new Error("CDP port and user data dir are required for local Chrome");
+      throw new Error(
+        'CDP port and user data dir are required for local Chrome',
+      );
     }
 
     const chromeProcess = await launchChrome({
@@ -97,10 +99,10 @@ export class ProfileManager {
 
     this.browsers.set(profile.name, browser);
 
-    browser.on("disconnected", () => {
+    browser.on('disconnected', () => {
       browserLogger.info(
-        { profile: profile.name },
-        "Local browser disconnected",
+        { profile: profile.name, subsystem: 'browser' },
+        'Local browser disconnected',
       );
       this.browsers.delete(profile.name);
     });
@@ -122,7 +124,10 @@ export class ProfileManager {
       this.chromeProcesses.delete(profileName);
     }
 
-    browserLogger.info({ profile: profileName }, "Browser stopped");
+    browserLogger.info(
+      { profile: profileName, subsystem: 'browser' },
+      'Browser stopped',
+    );
   }
 
   async stopAll(): Promise<void> {

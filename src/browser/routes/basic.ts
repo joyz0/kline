@@ -1,8 +1,6 @@
-import type { Express, Request, Response } from "express";
-import { browserLogger } from "../logger.js";
-import type { ProfileManager } from "../profiles/manager.js";
-import { launchChrome } from "../chrome.js";
-import { chromium } from "playwright";
+import type { Express, Request, Response } from 'express';
+import { browserLogger } from '../logger.js';
+import type { ProfileManager } from '../profiles/manager.js';
 
 export function registerBasicRoutes(
   app: Express,
@@ -30,7 +28,7 @@ export function registerBasicRoutes(
 
       await profileManager.ensureBrowser(profileConfig);
 
-      browserLogger.info({ profile }, "Browser started successfully");
+      browserLogger.info({ profile, subsystem: 'browser' }, 'Browser started successfully');
 
       res.json({
         success: true,
@@ -38,7 +36,7 @@ export function registerBasicRoutes(
         profile,
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to start browser");
+      browserLogger.error({ error, subsystem: 'browser' }, 'Failed to start browser');
 
       res.status(500).json({
         error: "Failed to start browser",
@@ -58,7 +56,7 @@ export function registerBasicRoutes(
         message: `Browser for profile "${profile}" stopped successfully`,
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to stop browser");
+      browserLogger.error({ error, subsystem: 'browser' }, 'Failed to stop browser');
 
       res.status(500).json({
         error: "Failed to stop browser",
@@ -87,7 +85,7 @@ export function registerBasicRoutes(
         config: profileConfig,
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to get status");
+      browserLogger.error({ error, subsystem: 'browser' }, 'Failed to get status');
 
       res.status(500).json({
         error: "Failed to get status",
@@ -108,7 +106,7 @@ export function registerBasicRoutes(
         })),
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to list profiles");
+      browserLogger.error({ error, subsystem: 'browser' }, 'Failed to list profiles');
 
       res.status(500).json({
         error: "Failed to list profiles",

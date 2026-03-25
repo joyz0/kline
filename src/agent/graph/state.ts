@@ -12,6 +12,20 @@ export interface AnalysisState {
   selectedDate: string;
   taskId: string;
 
+  // 工具调用
+  toolCalls?: Array<{
+    toolCallId: string;
+    name: string;
+    args: Record<string, any>;
+  }>;
+  toolResults?: Array<{
+    toolCallId: string;
+    toolName: string;
+    success: boolean;
+    result?: any;
+    error?: string;
+  }>;
+
   // 中间状态
   rawNews: NewsItem[];
   extractedEvents: Event[];
@@ -35,6 +49,8 @@ export function createInitialState(
   return {
     selectedDate,
     taskId,
+    toolCalls: [],
+    toolResults: [],
     rawNews: [],
     extractedEvents: [],
     causalChains: [],

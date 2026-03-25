@@ -88,8 +88,9 @@ export async function launchChrome(options: {
       cdpPort: options.cdpPort,
       userDataDir: options.userDataDir,
       headless: options.headless,
+      subsystem: 'browser',
     },
-    "Launching Chrome",
+    'Launching Chrome',
   );
 
   const proc = spawn(executable, args, {
@@ -98,17 +99,17 @@ export async function launchChrome(options: {
   });
 
   proc.stdout.on("data", (data) => {
-    browserLogger.debug({ stdout: data.toString() }, "Chrome stdout");
+    browserLogger.debug({ stdout: data.toString(), subsystem: 'browser' }, 'Chrome stdout');
   });
 
   proc.stderr.on("data", (data) => {
-    browserLogger.warn({ stderr: data.toString() }, "Chrome stderr");
+    browserLogger.warn({ stderr: data.toString(), subsystem: 'browser' }, 'Chrome stderr');
   });
 
   proc.on("exit", (code, signal) => {
     browserLogger.info(
-      { pid: proc.pid, code, signal },
-      "Chrome process exited",
+      { pid: proc.pid, code, signal, subsystem: 'browser' },
+      'Chrome process exited',
     );
   });
 
@@ -116,13 +117,13 @@ export async function launchChrome(options: {
     await waitForCDPReady(options.cdpPort, 15000);
 
     browserLogger.info(
-      { pid: proc.pid, cdpPort: options.cdpPort },
-      "Chrome is ready",
+      { pid: proc.pid, cdpPort: options.cdpPort, subsystem: 'browser' },
+      'Chrome is ready',
     );
   } catch (error) {
     browserLogger.error(
-      { error, cdpPort: options.cdpPort },
-      "Chrome failed to start",
+      { error, cdpPort: options.cdpPort, subsystem: 'browser' },
+      'Chrome failed to start',
     );
 
     proc.kill();
@@ -142,7 +143,7 @@ export async function launchChrome(options: {
 export async function stopChrome(
   chrome: RunningChrome,
 ): Promise<void> {
-  browserLogger.info({ pid: chrome.pid }, "Stopping Chrome");
+  browserLogger.info({ pid: chrome.pid, subsystem: 'browser' }, 'Stopping Chrome');
 
   return new Promise((resolve) => {
     if (chrome.proc) {

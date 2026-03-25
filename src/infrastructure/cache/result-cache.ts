@@ -1,6 +1,6 @@
-import { getRedisClient } from "../queue/redis-client.js";
-import type { AnalysisReport } from "../../types/index.js";
-import { logger } from "../../utils/logger.js";
+import { getRedisClient } from '../queue/redis-client.js';
+import type { AnalysisReport } from '../../types/index.js';
+import { logger } from '../../logging/index.js';
 
 export class ResultCache {
   private redis = getRedisClient();
@@ -16,13 +16,13 @@ export class ResultCache {
       const cached = await this.redis.get(key);
 
       if (cached) {
-        logger.info({ key }, "Cache hit");
+        logger.info({ key }, 'Cache hit');
         return JSON.parse(cached) as AnalysisReport;
       }
 
       return null;
     } catch (error) {
-      logger.error({ error }, "Cache get error");
+      logger.error({ error }, 'Cache get error');
       return null;
     }
   }
@@ -35,9 +35,9 @@ export class ResultCache {
     try {
       const key = this.generateCacheKey(date, newsHash);
       await this.redis.setex(key, this.CACHE_TTL, JSON.stringify(report));
-      logger.info({ key }, "Report cached");
+      logger.info({ key }, 'Report cached');
     } catch (error) {
-      logger.error({ error }, "Cache set error");
+      logger.error({ error }, 'Cache set error');
     }
   }
 
@@ -48,10 +48,10 @@ export class ResultCache {
 
       if (keys.length > 0) {
         await this.redis.del(...keys);
-        logger.info({ count: keys.length }, "Cache invalidated");
+        logger.info({ count: keys.length }, 'Cache invalidated');
       }
     } catch (error) {
-      logger.error({ error }, "Cache invalidation error");
+      logger.error({ error }, 'Cache invalidation error');
     }
   }
 
@@ -62,10 +62,10 @@ export class ResultCache {
 
       if (keys.length > 0) {
         await this.redis.del(...keys);
-        logger.info({ count: keys.length }, "All cache cleared");
+        logger.info({ count: keys.length }, 'All cache cleared');
       }
     } catch (error) {
-      logger.error({ error }, "Cache clear error");
+      logger.error({ error }, 'Cache clear error');
     }
   }
 }

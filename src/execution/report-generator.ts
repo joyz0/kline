@@ -3,9 +3,9 @@ import type {
   CausalChain,
   StockRecommendation,
   IndustryImpact,
-} from "../types/index.js";
-import { v4 as uuidv4 } from "uuid";
-import { logger } from "../utils/logger.js";
+} from '../types/index.js';
+import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../logging/index.js';
 
 export interface ReportGenerationParams {
   selectedDate: string;
@@ -21,7 +21,7 @@ export class ReportGenerator {
   async generateReport(
     params: ReportGenerationParams,
   ): Promise<AnalysisReport> {
-    logger.info({ date: params.selectedDate }, "Generating analysis report");
+    logger.info({ date: params.selectedDate }, 'Generating analysis report');
 
     const report: AnalysisReport = {
       id: uuidv4(),
@@ -39,7 +39,7 @@ export class ReportGenerator {
       },
     };
 
-    logger.info({ reportId: report.id }, "Report generated");
+    logger.info({ reportId: report.id }, 'Report generated');
     return report;
   }
 
@@ -53,7 +53,7 @@ export class ReportGenerator {
 
 今日共分析 ${params.newsCount} 条新闻，提取 ${params.eventsExtracted} 个关键事件，推导出 ${chainCount} 条因果链。
 
-主要影响行业：${topIndustries.join("、")}
+主要影响行业：${topIndustries.join('、')}
 
 推荐关注 ${stockCount} 只股票，建议重点关注因果链清晰、影响程度高的行业龙头。
 
@@ -93,17 +93,17 @@ export class ReportGenerator {
 
   private mapIndustryToSector(industry: string): string {
     const mapping: Record<string, string> = {
-      石油开采: "能源",
-      航运: "交通运输",
-      新能源: "电力设备",
-      光伏: "电力设备",
-      燃气轮机: "电力设备",
-      房地产: "房地产",
-      建筑业: "建筑材料",
-      银行业: "金融",
+      石油开采: '能源',
+      航运: '交通运输',
+      新能源: '电力设备',
+      光伏: '电力设备',
+      燃气轮机: '电力设备',
+      房地产: '房地产',
+      建筑业: '建筑材料',
+      银行业: '金融',
     };
 
-    return mapping[industry] || "其他";
+    return mapping[industry] || '其他';
   }
 
   private getTopIndustries(chains: CausalChain[]): string[] {

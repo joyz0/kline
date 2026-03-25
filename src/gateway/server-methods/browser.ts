@@ -1,9 +1,9 @@
-import type { FastifyInstance } from "fastify";
-import { browserLogger } from "../../browser/logger.js";
+import type { FastifyInstance } from 'fastify';
+import { browserLogger } from '../../browser/logger.js';
 import {
   startBrowserControlService,
   stopBrowserControlService,
-} from "../../browser/control-service.js";
+} from '../../browser/control-service.js';
 
 interface BrowserRequestParams {
   method: string;
@@ -13,26 +13,26 @@ interface BrowserRequestParams {
 }
 
 export async function registerBrowserHandlers(server: FastifyInstance) {
-  server.get("/gateway/browser", async (request, reply) => {
+  server.get('/gateway/browser', async (_request, reply) => {
     try {
       const service = await startBrowserControlService();
 
       reply.send({
         success: true,
         port: service.port,
-        message: "Browser control service is running",
+        message: 'Browser control service is running',
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to start browser service");
+      browserLogger.error({ error }, 'Failed to start browser service');
 
       reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
 
-  server.post("/gateway/browser/request", async (request, reply) => {
+  server.post('/gateway/browser/request', async (request, reply) => {
     try {
       const params = request.body as BrowserRequestParams;
 
@@ -42,29 +42,29 @@ export async function registerBrowserHandlers(server: FastifyInstance) {
 
       reply.send(result);
     } catch (error) {
-      browserLogger.error({ error }, "Failed to process browser request");
+      browserLogger.error({ error }, 'Failed to process browser request');
 
       reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
 
-  server.post("/gateway/browser/stop", async (request, reply) => {
+  server.post('/gateway/browser/stop', async (_request, reply) => {
     try {
       await stopBrowserControlService();
 
       reply.send({
         success: true,
-        message: "Browser control service stopped",
+        message: 'Browser control service stopped',
       });
     } catch (error) {
-      browserLogger.error({ error }, "Failed to stop browser service");
+      browserLogger.error({ error }, 'Failed to stop browser service');
 
       reply.status(500).send({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
@@ -87,17 +87,20 @@ async function dispatchBrowserRequest(
   const options: RequestInit = {
     method,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   };
 
-  if (body && method.toUpperCase() !== "GET") {
+  if (body && method.toUpperCase() !== 'GET') {
     options.body = JSON.stringify(body);
   }
 
   const response = await fetch(url.toString(), options);
 
-  const responseBody = await response.json();
+  const responseBody = (await response.json()) as {
+    message?: string;
+    [key: string]: any;
+  };
 
   if (!response.ok) {
     throw new Error(responseBody.message || `HTTP ${response.status}`);

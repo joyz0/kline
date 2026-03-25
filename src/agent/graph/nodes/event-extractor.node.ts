@@ -1,18 +1,18 @@
-import type { AnalysisState } from "../state.js";
-import { eventExtractor } from "../../../execution/event-extractor.js";
-import { logger } from "../../../utils/logger.js";
+import type { AnalysisState } from '../state.js';
+import { eventExtractor } from '../../../execution/event-extractor.js';
+import { logger } from '../../../logging/index.js';
 
 export async function extractEventsNode(
   state: AnalysisState,
 ): Promise<Partial<AnalysisState>> {
   logger.info(
     { taskId: state.taskId, newsCount: state.rawNews.length },
-    "Extracting events",
+    'Extracting events',
   );
 
   try {
     if (state.rawNews.length === 0) {
-      logger.warn({ taskId: state.taskId }, "No news to extract events from");
+      logger.warn({ taskId: state.taskId }, 'No news to extract events from');
       return { extractedEvents: [] };
     }
 
@@ -24,19 +24,19 @@ export async function extractEventsNode(
         extractedEvents.length === 0
           ? [
               ...state.errors,
-              { step: "event_extraction", message: "No events extracted" },
+              { step: 'event_extraction', message: 'No events extracted' },
             ]
           : state.errors,
     };
   } catch (error) {
-    logger.error({ error, taskId: state.taskId }, "Event extraction failed");
+    logger.error({ error, taskId: state.taskId }, 'Event extraction failed');
 
     return {
       errors: [
         ...state.errors,
         {
-          step: "event_extraction",
-          message: error instanceof Error ? error.message : "Unknown error",
+          step: 'event_extraction',
+          message: error instanceof Error ? error.message : 'Unknown error',
         },
       ],
     };

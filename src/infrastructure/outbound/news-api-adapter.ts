@@ -1,5 +1,5 @@
 import type { NewsItem } from '../../types/index.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../logging/index.js';
 import { browserNewsCollector } from '../../browser/news-collector.js';
 
 export interface NewsSource {

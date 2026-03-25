@@ -48,10 +48,13 @@ export function createAuthMiddleware(config: AuthConfig = DEFAULT_CONFIG) {
     }
 
     if (!token) {
-      browserLogger.warn('Unauthorized access attempt - no token', {
-        path: req.path,
-        method: req.method,
-      });
+      browserLogger.warn(
+        {
+          path: req.path,
+          method: req.method,
+        },
+        'Unauthorized access attempt - no token',
+      );
 
       return res.status(401).json({
         error: 'Unauthorized',
@@ -61,7 +64,7 @@ export function createAuthMiddleware(config: AuthConfig = DEFAULT_CONFIG) {
     }
 
     if (!constantTimeCompare(token, authConfig.secret)) {
-      browserLogger.warn('Unauthorized access attempt - invalid token', {
+      browserLogger.warn({
         path: req.path,
         method: req.method,
       });
@@ -156,11 +159,14 @@ export function createRateLimitMiddleware(
     res.setHeader('X-RateLimit-Reset', clientData.resetTime.toString());
 
     if (clientData.count > rateLimitConfig.maxRequests) {
-      browserLogger.warn('Rate limit exceeded', {
-        clientId,
-        path: req.path,
-        count: clientData.count,
-      });
+      browserLogger.warn(
+        {
+          clientId,
+          path: req.path,
+          count: clientData.count,
+        },
+        'Rate limit exceeded',
+      );
 
       return res.status(429).json({
         error: 'Too Many Requests',

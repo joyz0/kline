@@ -1,11 +1,13 @@
-import { buildServer } from "./gateway/server.js";
-import { analysisQueue } from "./infrastructure/queue/analysis-queue.js";
-import { taskOrchestrator } from "./gateway/task-orchestrator.js";
-import { logger } from "./utils/logger.js";
-import { config } from "./config/index.js";
+import { buildServer } from './gateway/server.js';
+import { analysisQueue } from './infrastructure/queue/analysis-queue.js';
+import { taskOrchestrator } from './gateway/task-orchestrator.js';
+import { logger } from './logging/index.js';
+import { ConfigLoader } from './config/index.js';
+
+const config = ConfigLoader.getInstance().getConfig();
 
 async function bootstrap() {
-  logger.info("Starting Kline server...");
+  logger.info('Starting Kline server...');
 
   // 构建服务器
   const server = await buildServer();
@@ -31,27 +33,28 @@ async function bootstrap() {
     });
 
     logger.info(
+      { host: config.server.host, port: config.server.port },
       `Server is running on http://${config.server.host}:${config.server.port}`,
     );
 
     // 处理优雅关闭
-    const signals = ["SIGINT", "SIGTERM"];
+    const signals = ['SIGINT', 'SIGTERM'];
 
     signals.forEach((signal) => {
       process.on(signal, async () => {
-        logger.info(`Received ${signal}, shutting down gracefully...`);
+        logger.info({ signal }, `Received ${signal}, shutting down gracefully...`);
         await server.close();
         process.exit(0);
       });
     });
   } catch (error) {
-    logger.error({ error }, "Failed to start server");
+    logger.error({ error }, 'Failed to start server');
     process.exit(1);
   }
 }
 
 // 启动应用
 bootstrap().catch((error) => {
-  logger.error({ error }, "Bootstrap failed");
+  logger.error({ error }, 'Bootstrap failed');
   process.exit(1);
 });

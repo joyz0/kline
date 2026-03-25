@@ -5,6 +5,7 @@ import { extractEventsNode } from "./nodes/event-extractor.node.js";
 import { inferCausalChainsNode } from "./nodes/causal-inferrer.node.js";
 import { screenStocksNode } from "./nodes/stock-screener.node.js";
 import { generateReportNode } from "./nodes/report-generator.node.js";
+import { webToolNode } from "./nodes/web-tool.node.js";
 
 export function buildAnalysisGraph() {
   const workflow = new StateGraph<AnalysisState>({
@@ -20,9 +21,12 @@ export function buildAnalysisGraph() {
       processingStartTime: { reducer: (_state, update) => update },
       modelUsed: { reducer: (_state, update) => update },
       errors: { reducer: (state, update) => [...state, ...update] },
+      toolCalls: { reducer: (_state, update) => update },
+      toolResults: { reducer: (_state, update) => update },
     },
   })
     // 定义节点
+    .addNode("web_tool", webToolNode)
     .addNode("news_collector", collectNewsNode)
     .addNode("event_extractor", extractEventsNode)
     .addNode("causal_chain_inferrer", inferCausalChainsNode)
@@ -30,7 +34,8 @@ export function buildAnalysisGraph() {
     .addNode("report_generator", generateReportNode)
 
     // 定义边
-    .addEdge("__start__", "news_collector")
+    .addEdge("__start__", "web_tool")
+    .addEdge("web_tool", "news_collector")
     .addEdge("news_collector", "event_extractor")
     .addEdge("event_extractor", "causal_chain_inferrer")
     .addEdge("causal_chain_inferrer", "stock_screener")

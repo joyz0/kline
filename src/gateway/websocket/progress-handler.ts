@@ -1,11 +1,11 @@
-import { FastifyInstance } from "fastify";
-import { logger } from "../../utils/logger.js";
-import { analysisQueue } from "../../infrastructure/queue/analysis-queue.js";
+import type { FastifyInstance } from 'fastify';
+import { logger } from '../../logging/index.js';
+import { analysisQueue } from '../../infrastructure/queue/analysis-queue.js';
 
 export async function setupWebSocket(server: FastifyInstance) {
   server.register(async (fastify) => {
     fastify.get(
-      "/ws/progress",
+      '/ws/progress',
       { websocket: true },
       async (connection, req) => {
         const { taskId } = req.query as { taskId?: string };
@@ -13,14 +13,14 @@ export async function setupWebSocket(server: FastifyInstance) {
         if (!taskId) {
           connection.socket.send(
             JSON.stringify({
-              error: "Task ID is required",
+              error: 'Task ID is required',
             }),
           );
           connection.socket.close();
           return;
         }
 
-        logger.info({ taskId }, "WebSocket connection established");
+        logger.info({ taskId }, 'WebSocket connection established');
 
         // 定期推送进度
         const interval = setInterval(async () => {
@@ -30,7 +30,7 @@ export async function setupWebSocket(server: FastifyInstance) {
             if (!task) {
               connection.socket.send(
                 JSON.stringify({
-                  error: "Task not found",
+                  error: 'Task not found',
                 }),
               );
               return;
@@ -38,16 +38,16 @@ export async function setupWebSocket(server: FastifyInstance) {
 
             connection.socket.send(
               JSON.stringify({
-                type: "progress",
+                type: 'progress',
                 data: task,
               }),
             );
 
             // 如果任务完成，关闭连接
-            if (task.status === "COMPLETED" || task.status === "FAILED") {
+            if (task.status === 'COMPLETED' || task.status === 'FAILED') {
               connection.socket.send(
                 JSON.stringify({
-                  type: "completed",
+                  type: 'completed',
                   data: task,
                 }),
               );
@@ -55,14 +55,14 @@ export async function setupWebSocket(server: FastifyInstance) {
               setTimeout(() => connection.socket.close(), 1000);
             }
           } catch (error) {
-            logger.error({ error, taskId }, "Error sending progress update");
+            logger.error({ error, taskId }, 'Error sending progress update');
           }
         }, 2000); // 每 2 秒推送一次
 
         // 清理
-        connection.socket.on("close", () => {
+        connection.socket.on('close', () => {
           clearInterval(interval);
-          logger.info({ taskId }, "WebSocket connection closed");
+          logger.info({ taskId }, 'WebSocket connection closed');
         });
       },
     );

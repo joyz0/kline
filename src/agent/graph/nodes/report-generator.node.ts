@@ -1,11 +1,11 @@
-import type { AnalysisState } from "../state.js";
-import { reportGenerator } from "../../../execution/report-generator.js";
-import { logger } from "../../../utils/logger.js";
+import type { AnalysisState } from '../state.js';
+import { reportGenerator } from '../../../execution/report-generator.js';
+import { logger } from '../../../logging/index.js';
 
 export async function generateReportNode(
   state: AnalysisState,
 ): Promise<Partial<AnalysisState>> {
-  logger.info({ taskId: state.taskId }, "Generating report");
+  logger.info({ taskId: state.taskId }, 'Generating report');
 
   try {
     const processingTime = Date.now() - state.processingStartTime;
@@ -24,14 +24,14 @@ export async function generateReportNode(
       finalReport,
     };
   } catch (error) {
-    logger.error({ error, taskId: state.taskId }, "Report generation failed");
+    logger.error({ error, taskId: state.taskId }, 'Report generation failed');
 
     return {
       errors: [
         ...state.errors,
         {
-          step: "report_generation",
-          message: error instanceof Error ? error.message : "Unknown error",
+          step: 'report_generation',
+          message: error instanceof Error ? error.message : 'Unknown error',
         },
       ],
     };

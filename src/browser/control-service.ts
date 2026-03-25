@@ -29,9 +29,10 @@ export interface BrowserServiceState {
 
 export async function startBrowserControlService(): Promise<BrowserServiceState> {
   if (httpServer) {
-    browserLogger.warn('Browser control service already running', {
-      subsystem: 'browser',
-    });
+    browserLogger.warn(
+      { subsystem: 'browser' },
+      'Browser control service already running',
+    );
 
     return {
       server: expressApp!,
@@ -88,10 +89,10 @@ export async function startBrowserControlService(): Promise<BrowserServiceState>
   registerAgentRoutes(app, profileManager);
 
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-    browserLogger.error('Unhandled error', {
-      error: err.message,
-      subsystem: 'browser',
-    });
+    browserLogger.error(
+      { error: err.message, subsystem: 'browser' },
+      'Unhandled error',
+    );
 
     res.status(500).json({
       error: 'Internal Server Error',
@@ -108,11 +109,14 @@ export async function startBrowserControlService(): Promise<BrowserServiceState>
         return;
       }
 
-      browserLogger.info('Browser control service started', {
-        port,
-        host: '127.0.0.1',
-        subsystem: 'browser',
-      });
+      browserLogger.info(
+        {
+          port,
+          host: '127.0.0.1',
+          subsystem: 'browser',
+        },
+        'Browser control service started',
+      );
       resolve();
     });
   });
@@ -146,16 +150,18 @@ export async function stopBrowserControlService(): Promise<void> {
           .stopAll()
           .then(() => {
             profileManager = null;
-            browserLogger.info('Browser control service stopped', {
-              subsystem: 'browser',
-            });
+            browserLogger.info(
+              { subsystem: 'browser' },
+              'Browser control service stopped',
+            );
             resolve();
           })
           .catch(reject);
       } else {
-        browserLogger.info('Browser control service stopped', {
-          subsystem: 'browser',
-        });
+        browserLogger.info(
+          { subsystem: 'browser' },
+          'Browser control service stopped',
+        );
         resolve();
       }
     });

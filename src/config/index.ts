@@ -84,7 +84,7 @@ export class ConfigLoader {
     const envFilePath = process.env.ENV_FILE || ENV_FILE;
 
     if (fs.existsSync(envFilePath)) {
-      logger.info(`Loading environment from ${envFilePath}`);
+      logger.info({ envFilePath }, 'Loading environment from');
       const dotenv = await import('dotenv');
       const envConfig = dotenv.default.config({ path: envFilePath });
 
@@ -107,7 +107,7 @@ export class ConfigLoader {
     const configPath = process.env.KLINE_CONFIG_FILE || KLINE_CONFIG_FILE;
 
     if (!fs.existsSync(configPath)) {
-      logger.warn(`Config file not found: ${configPath}, using defaults`);
+      logger.warn({ configPath }, 'Config file not found, using defaults');
       return this.createDefaultConfig();
     }
 
@@ -128,10 +128,10 @@ export class ConfigLoader {
       // 解析路径配置（相对于 .kline 目录）
       const resolvedConfig = this.resolvePaths(config);
 
-      logger.info(`Loaded config from ${configPath}`);
+      logger.info({ configPath }, 'Loaded config from');
       return resolvedConfig;
     } catch (error) {
-      logger.error(`Failed to load config: ${error}`);
+      logger.error({ error }, 'Failed to load config');
       return this.createDefaultConfig();
     }
   }
@@ -196,7 +196,10 @@ export class ConfigLoader {
 
     const appConfigResult = appConfigSchema.safeParse(appConfigData);
     if (!appConfigResult.success) {
-      logger.error('Invalid app config:', appConfigResult.error.format());
+      logger.error(
+        { error: appConfigResult.error.format() },
+        'Invalid app config',
+      );
       throw new Error('Invalid app config');
     }
 
@@ -211,8 +214,8 @@ export class ConfigLoader {
       browserConfigSchema.safeParse(browserConfigData);
     if (!browserConfigResult.success) {
       logger.error(
-        'Invalid browser config:',
-        browserConfigResult.error.format(),
+        { error: browserConfigResult.error.format() },
+        'Invalid browser config',
       );
       throw new Error('Invalid browser config');
     }
@@ -360,7 +363,7 @@ export class ConfigLoader {
     // 保存为 JSON5 格式
     const json5Content = JSON5.stringify(mergedConfig, null, 2);
     fs.writeFileSync(configPath, json5Content);
-    logger.info(`Saved config to ${configPath}`);
+    logger.info({ configPath }, 'Saved config to');
   }
 }
 

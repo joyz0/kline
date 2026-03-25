@@ -1,9 +1,9 @@
-import Queue from "bull";
-import { v4 as uuidv4 } from "uuid";
-import { getRedisClient } from "./redis-client.js";
-import { logger } from "../../utils/logger.js";
-import type { Task, TaskProgress, AnalysisReport } from "../../types/index.js";
-import type { Job } from "bull";
+import Queue from 'bull';
+import { v4 as uuidv4 } from 'uuid';
+import { getRedisClient } from './redis-client.js';
+import { logger } from '../../logging/index.js';
+import type { Task, TaskProgress, AnalysisReport } from '../../types/index.js';
+import type { Job } from 'bull';
 
 export interface AnalysisJobData {
   taskId: string;
@@ -21,7 +21,7 @@ class AnalysisQueueManager {
 
   constructor() {
     const redis = getRedisClient();
-    this.queue = new Queue<AnalysisJobData>("analysis", {
+    this.queue = new Queue<AnalysisJobData>('analysis', {
       redis: {
         port: redis.options.port,
         host: redis.options.host,
@@ -30,7 +30,7 @@ class AnalysisQueueManager {
       defaultJobOptions: {
         attempts: 3,
         backoff: {
-          type: "exponential",
+          type: 'exponential',
           delay: 1000,
         },
         removeOnComplete: 100,
@@ -42,16 +42,16 @@ class AnalysisQueueManager {
   }
 
   private setupQueueHandlers() {
-    this.queue.on("error", (err: Error) => {
-      logger.error(err, "Queue error");
+    this.queue.on('error', (err: Error) => {
+      logger.error(err, 'Queue error');
     });
 
-    this.queue.on("failed", (job: Job<AnalysisJobData>, err: Error) => {
-      logger.error({ jobId: job?.id, error: err.message }, "Job failed");
+    this.queue.on('failed', (job: Job<AnalysisJobData>, err: Error) => {
+      logger.error({ jobId: job?.id, error: err.message }, 'Job failed');
     });
 
-    this.queue.on("completed", (job: Job<AnalysisJobData>) => {
-      logger.info({ jobId: job?.id }, "Job completed");
+    this.queue.on('completed', (job: Job<AnalysisJobData>) => {
+      logger.info({ jobId: job?.id }, 'Job completed');
     });
   }
 
@@ -69,7 +69,7 @@ class AnalysisQueueManager {
       },
     );
 
-    logger.info({ taskId, selectedDate }, "Analysis job added");
+    logger.info({ taskId, selectedDate }, 'Analysis job added');
     return taskId;
   }
 
@@ -103,19 +103,19 @@ class AnalysisQueueManager {
 
   private mapJobStateToTaskStatus(
     state: string,
-  ): "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" {
+  ): 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' {
     switch (state) {
-      case "waiting":
-      case "delayed":
-        return "PENDING";
-      case "active":
-        return "PROCESSING";
-      case "completed":
-        return "COMPLETED";
-      case "failed":
-        return "FAILED";
+      case 'waiting':
+      case 'delayed':
+        return 'PENDING';
+      case 'active':
+        return 'PROCESSING';
+      case 'completed':
+        return 'COMPLETED';
+      case 'failed':
+        return 'FAILED';
       default:
-        return "PENDING";
+        return 'PENDING';
     }
   }
 
@@ -123,7 +123,7 @@ class AnalysisQueueManager {
     const job = await this.queue.getJob(taskId);
     if (job) {
       await job.remove();
-      logger.info({ taskId }, "Job cancelled");
+      logger.info({ taskId }, 'Job cancelled');
       return true;
     }
     return false;
