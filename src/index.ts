@@ -1,5 +1,8 @@
-import { buildExpressServer, closeExpressServer } from './gateway/express-server.js';
-import { analysisQueue } from './infrastructure/queue/analysis-queue.js';
+import {
+  buildExpressServer,
+  closeExpressServer,
+} from './gateway/express-server.js';
+import { analysisQueue } from './infra/queue/analysis-queue.js';
 import { taskOrchestrator } from './gateway/task-orchestrator.js';
 import { logger } from './logging/index.js';
 
@@ -32,7 +35,10 @@ async function bootstrap() {
 
   signals.forEach((signal) => {
     process.on(signal, async () => {
-      logger.info({ signal }, `Received ${signal}, shutting down gracefully...`);
+      logger.info(
+        { signal },
+        `Received ${signal}, shutting down gracefully...`,
+      );
       await closeExpressServer(expressServer);
       process.exit(0);
     });

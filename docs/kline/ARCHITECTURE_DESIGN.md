@@ -27,6 +27,7 @@
 借鉴 OpenClaw 项目的**四层架构**经验，结合 LangGraph TypeScript 实现支持**自我学习**的 Agent Layer。
 
 **核心创新点**：
+
 - ✅ 不手动定义因果链模板
 - ✅ 通过 Skills 系统让大模型自行总结因果模式
 - ✅ 具备自我学习和持续优化能力
@@ -150,12 +151,12 @@ graph TB
 
 ### 各层职责
 
-| 层级 | 职责 | 关键技术 |
-|------|------|----------|
-| **交互层** | 用户界面、API 接口、实时推送 | React, Fastify, WebSocket |
-| **网关层** | 任务调度、队列管理、缓存、并发控制 | Bull, Redis, Rate Limiter |
-| **智能体层** | 因果推导、技能执行、自我学习 | LangGraph, LLM, Neo4j, LanceDB |
-| **执行层** | 新闻采集、事件提取、报告生成 | Puppeteer, Axios, Template Engine |
+| 层级         | 职责                               | 关键技术                          |
+| ------------ | ---------------------------------- | --------------------------------- |
+| **交互层**   | 用户界面、API 接口、实时推送       | React, Fastify, WebSocket         |
+| **网关层**   | 任务调度、队列管理、缓存、并发控制 | Bull, Redis, Rate Limiter         |
+| **智能体层** | 因果推导、技能执行、自我学习       | LangGraph, LLM, Neo4j, LanceDB    |
+| **执行层**   | 新闻采集、事件提取、报告生成       | Puppeteer, Axios, Template Engine |
 
 ---
 
@@ -170,18 +171,18 @@ interface AnalysisState {
   // ========== 输入 ==========
   selectedDate: string;
   rawNews: NewsItem[];
-  
+
   // ========== 中间状态 ==========
   extractedEvents: Event[];
   causalChains: CausalChain[];
   industryImpacts: IndustryImpact[];
   stockCandidates: StockCandidate[];
-  
+
   // ========== 学习状态 ==========
   learnedPatterns: CausalPattern[];
   similarHistoricalCases: HistoricalCase[];
   confidenceScores: Map<string, number>;
-  
+
   // ========== 输出 ==========
   finalReport: AnalysisReport;
   stockRecommendations: StockRecommendation[];
@@ -202,12 +203,12 @@ const causalInferenceGraph = StateGraph<AnalysisState>
   .addNode('stock_screener', screenStocks)
   .addNode('self_learner', learnFromAnalysis)
   .addNode('report_generator', generateReport)
-  
+
   // 边定义
   .addEdge('START', 'news_collector')
   .addEdge('news_collector', 'event_extractor')
   .addEdge('event_extractor', 'causal_chain_inferrer')
-  
+
   // 条件路由：根据因果链复杂度决定是否需要深度行业分析
   .addConditionalEdges(
     'causal_chain_inferrer',
@@ -217,7 +218,7 @@ const causalInferenceGraph = StateGraph<AnalysisState>
       'direct': 'stock_screener'
     }
   )
-  
+
   .addEdge('industry_analyzer', 'stock_screener')
   .addEdge('stock_screener', 'self_learner')
   .addEdge('self_learner', 'report_generator')
@@ -238,19 +239,21 @@ function shouldDeepDive(state: AnalysisState): 'deep_dive' | 'direct' {
 #### Node 1: 新闻采集
 
 ```typescript
-async function collectNews(state: AnalysisState): Promise<Partial<AnalysisState>> {
+async function collectNews(
+  state: AnalysisState,
+): Promise<Partial<AnalysisState>> {
   const { selectedDate } = state;
-  
+
   // 并行采集多个新闻源
   const [sina, eastmoney, jin10] = await Promise.all([
     fetchSinaFinance(selectedDate),
     fetchEastMoney(selectedDate),
-    fetchJin10(selectedDate)
+    fetchJin10(selectedDate),
   ]);
-  
+
   // 去重和标准化
   const deduplicated = deduplicateNews([...sina, ...eastmoney, ...jin10]);
-  
+
   return { rawNews: deduplicated };
 }
 ```
@@ -260,10 +263,10 @@ async function collectNews(state: AnalysisState): Promise<Partial<AnalysisState>
 ```typescript
 async function extractEventsWithSkill(
   state: AnalysisState,
-  skills: SkillRegistry
+  skills: SkillRegistry,
 ): Promise<Partial<AnalysisState>> {
   const { rawNews } = state;
-  
+
   // 并行使用不同事件提取技能
   const events = await Promise.all(
     rawNews.map(async (news) => {
@@ -272,13 +275,13 @@ async function extractEventsWithSkill(
         'extract_geopolitical_event',
         'extract_macro_event',
         'extract_industry_event',
-        'extract_policy_event'
+        'extract_policy_event',
       ]);
-      
+
       return await skill.execute(news);
-    })
+    }),
   );
-  
+
   return { extractedEvents: events.filter(Boolean) };
 }
 ```
@@ -289,26 +292,27 @@ async function extractEventsWithSkill(
 async function inferCausalChains(
   state: AnalysisState,
   skills: SkillRegistry,
-  knowledgeGraph: KnowledgeGraph
+  knowledgeGraph: KnowledgeGraph,
 ): Promise<Partial<AnalysisState>> {
   const { extractedEvents } = state;
-  
+
   // 1. 检索相似历史案例（Few-shot learning）
-  const similarCases = await knowledgeGraph.retrieveSimilarCases(extractedEvents);
-  
+  const similarCases =
+    await knowledgeGraph.retrieveSimilarCases(extractedEvents);
+
   // 2. 使用因果推导技能
   const causalChains = await skills.invoke('infer_event_chain', {
     events: extractedEvents,
-    fewShotExamples: similarCases.map(c => c.causalChain)
+    fewShotExamples: similarCases.map((c) => c.causalChain),
   });
-  
+
   // 3. 为每条因果链计算初始置信度
   const confidenceScores = calculateConfidence(causalChains, similarCases);
-  
-  return { 
+
+  return {
     causalChains,
     similarHistoricalCases: similarCases,
-    confidenceScores
+    confidenceScores,
   };
 }
 ```
@@ -319,30 +323,30 @@ async function inferCausalChains(
 async function learnFromAnalysis(
   state: AnalysisState,
   skills: SkillRegistry,
-  knowledgeGraph: KnowledgeGraph
+  knowledgeGraph: KnowledgeGraph,
 ): Promise<Partial<AnalysisState>> {
   const { causalChains, stockCandidates } = state;
-  
+
   // 1. 从当前因果链中提取通用模式
   const patterns = await skills.invoke('extract_causal_pattern', {
-    causalChains
+    causalChains,
   });
-  
+
   // 2. 更新知识图谱
   for (const chain of causalChains) {
     await skills.invoke('update_knowledge_graph', {
-      causalChain: chain
+      causalChain: chain,
     });
   }
-  
+
   // 3. 记录学习元数据
   const learningMetadata = {
     timestamp: Date.now(),
     patternsExtracted: patterns.length,
     chainsProcessed: causalChains.length,
-    stocksAnalyzed: stockCandidates.length
+    stocksAnalyzed: stockCandidates.length,
   };
-  
+
   return { learnedPatterns: patterns };
 }
 ```
@@ -361,8 +365,8 @@ interface Skill<P, R> {
   execute: (params: P, context: SkillContext) => Promise<R>;
   metadata: {
     version: string;
-    learnedFrom?: string[];  // 从哪些案例学习得到
-    confidence?: number;     // 置信度
+    learnedFrom?: string[]; // 从哪些案例学习得到
+    confidence?: number; // 置信度
   };
 }
 ```
@@ -390,11 +394,11 @@ const extractGeopoliticalEvent: Skill<NewsItem, Event> = {
       4. 关键参与方
       5. 事件描述
     `;
-    
+
     const response = await context.llm.invoke(prompt);
     return parseEvent(response);
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 
 // 宏观经济事件提取
@@ -404,7 +408,7 @@ const extractMacroEvent: Skill<NewsItem, Event> = {
   execute: async (news, context) => {
     // 类似实现...
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 ```
 
@@ -417,20 +421,24 @@ const inferEventChain: Skill<CausalInferenceParams, CausalChain> = {
   description: '推导事件之间的因果关系链',
   execute: async (params, context) => {
     const { events, fewShotExamples } = params;
-    
+
     // 构建 Few-shot Prompt
-    const fewShotText = fewShotExamples.map(example => `
+    const fewShotText = fewShotExamples
+      .map(
+        (example) => `
       示例因果链：
       起始事件：${example.startEvent}
       传导路径：${example.chain.join(' → ')}
       最终影响：${example.endImpact}
-    `).join('\n');
-    
+    `,
+      )
+      .join('\n');
+
     const prompt = `
       ${fewShotText}
       
       请推导以下事件的因果链：
-      ${events.map(e => `- ${e.type}: ${e.description}`).join('\n')}
+      ${events.map((e) => `- ${e.type}: ${e.description}`).join('\n')}
       
       推导步骤：
       1. 识别直接影响（如：地缘冲突 → 原油价格上涨）
@@ -438,11 +446,11 @@ const inferEventChain: Skill<CausalInferenceParams, CausalChain> = {
       3. 推导三级影响（如：航运成本 → 新能源替代需求）
       4. 映射到具体行业和公司
     `;
-    
+
     const response = await context.llm.invoke(prompt);
     return parseCausalChain(response);
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 
 // 行业影响映射
@@ -451,19 +459,22 @@ const mapIndustryImpact: Skill<CausalChain, IndustryImpact[]> = {
   description: '将因果链映射到具体行业影响',
   execute: async (chain, context) => {
     // 查询知识图谱中的行业关系
-    const industryRelations = await context.knowledgeGraph.query(`
+    const industryRelations = await context.knowledgeGraph.query(
+      `
       MATCH (e:Event {id: $eventId})-[:AFFECTS]->(i:Industry)
       RETURN i.name, i.sector, r.impactScore, r.delay
-    `, { eventId: chain.startEvent.id });
-    
-    return industryRelations.map(rel => ({
+    `,
+      { eventId: chain.startEvent.id },
+    );
+
+    return industryRelations.map((rel) => ({
       industry: rel.i.name,
       sector: rel.i.sector,
       impactScore: rel.r.impactScore,
-      delay: rel.r.delay
+      delay: rel.r.delay,
     }));
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 ```
 
@@ -476,14 +487,18 @@ const extractCausalPattern: Skill<PatternExtractionParams, CausalPattern[]> = {
   description: '从历史因果链中提取通用模式',
   execute: async (params, context) => {
     const { causalChains } = params;
-    
+
     const prompt = `
       从以下具体因果链中提取通用的因果模式：
       
-      ${causalChains.map(chain => `
+      ${causalChains
+        .map(
+          (chain) => `
         因果链 ${chain.id}:
-        ${chain.steps.map(step => `  - ${step.event} → ${step.impact}`).join('\n')}
-      `).join('\n\n')}
+        ${chain.steps.map((step) => `  - ${step.event} → ${step.impact}`).join('\n')}
+      `,
+        )
+        .join('\n\n')}
       
       提取要求：
       1. 抽象出通用事件类型（如"地缘冲突"而非"美伊战争"）
@@ -491,11 +506,11 @@ const extractCausalPattern: Skill<PatternExtractionParams, CausalPattern[]> = {
       3. 识别模式适用的行业类别
       4. 标注模式的置信度
     `;
-    
+
     const response = await context.llm.invoke(prompt);
     return parsePatterns(response);
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 
 // 预测验证
@@ -504,13 +519,13 @@ const validatePrediction: Skill<ValidationParams, LearningFeedback> = {
   description: '验证推荐股票的实际表现，生成学习反馈',
   execute: async (params, context) => {
     const { recommendation, actualPerformance } = params;
-    
+
     // 计算预测准确度
     const accuracy = calculateAccuracy(
       recommendation.predictedImpact,
-      actualPerformance.priceChange
+      actualPerformance.priceChange,
     );
-    
+
     // 分析误差原因
     if (accuracy < 0.7) {
       const errorAnalysis = await context.llm.invoke(`
@@ -525,17 +540,17 @@ const validatePrediction: Skill<ValidationParams, LearningFeedback> = {
         3. 影响延迟是否估计错误？
         4. 行业映射是否准确？
       `);
-      
+
       return {
         accuracy,
         errorAnalysis: parseErrorAnalysis(errorAnalysis),
-        adjustments: generateAdjustments(errorAnalysis)
+        adjustments: generateAdjustments(errorAnalysis),
       };
     }
-    
+
     return { accuracy, errorAnalysis: null, adjustments: [] };
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 
 // 知识图谱更新
@@ -544,38 +559,46 @@ const updateKnowledgeGraph: Skill<GraphUpdateParams, void> = {
   description: '根据新的因果链更新知识图谱',
   execute: async (params, context) => {
     const { causalChain } = params;
-    
+
     // 1. 创建或更新事件节点
-    await context.neo4j.run(`
+    await context.neo4j.run(
+      `
       MERGE (e:Event {id: $eventId})
       SET e.type = $type,
           e.title = $title,
           e.embedding = $embedding
-    `, {
-      eventId: causalChain.startEvent.id,
-      type: causalChain.startEvent.type,
-      title: causalChain.startEvent.title,
-      embedding: await context.embedder.embed(causalChain.startEvent.description)
-    });
-    
+    `,
+      {
+        eventId: causalChain.startEvent.id,
+        type: causalChain.startEvent.type,
+        title: causalChain.startEvent.title,
+        embedding: await context.embedder.embed(
+          causalChain.startEvent.description,
+        ),
+      },
+    );
+
     // 2. 创建或更新因果关系
     for (const step of causalChain.steps) {
-      await context.neo4j.run(`
+      await context.neo4j.run(
+        `
         MATCH (source:Event {id: $sourceId})
         MATCH (target:Industry {name: $targetName})
         MERGE (source)-[r:AFFECTS]->(target)
         SET r.strength = COALESCE(r.strength, 0) + $strength,
             r.confidence = $confidence,
             r.lastUpdated = timestamp()
-      `, {
-        sourceId: step.event.id,
-        targetName: step.affectedIndustry,
-        strength: step.impactMagnitude,
-        confidence: causalChain.confidence
-      });
+      `,
+        {
+          sourceId: step.event.id,
+          targetName: step.affectedIndustry,
+          strength: step.impactMagnitude,
+          confidence: causalChain.confidence,
+        },
+      );
     }
   },
-  metadata: { version: '1.0.0' }
+  metadata: { version: '1.0.0' },
 };
 ```
 
@@ -585,7 +608,7 @@ const updateKnowledgeGraph: Skill<GraphUpdateParams, void> = {
 class SkillRegistry {
   private skills: Map<string, Skill<any, any>> = new Map();
   private skillEmbeddings: Map<string, number[]> = new Map();
-  
+
   // 注册技能
   register(skill: Skill<any, any>): void {
     this.skills.set(skill.name, skill);
@@ -593,38 +616,40 @@ class SkillRegistry {
     const embedding = await this.embedder.embed(skill.description);
     this.skillEmbeddings.set(skill.name, embedding);
   }
-  
+
   // 根据语义相似度选择最合适的技能
   selectSkill(query: string, candidateSkillNames: string[]): Skill<any, any> {
     const queryEmbedding = this.embedder.embedSync(query);
-    
+
     // 计算余弦相似度
-    const similarities = candidateSkillNames.map(name => ({
+    const similarities = candidateSkillNames.map((name) => ({
       name,
       similarity: cosineSimilarity(
         queryEmbedding,
-        this.skillEmbeddings.get(name)!
-      )
+        this.skillEmbeddings.get(name)!,
+      ),
     }));
-    
+
     // 选择最相似的技能
-    const bestMatch = similarities.sort((a, b) => b.similarity - a.similarity)[0];
+    const bestMatch = similarities.sort(
+      (a, b) => b.similarity - a.similarity,
+    )[0];
     return this.skills.get(bestMatch.name)!;
   }
-  
+
   // 调用技能
   async invoke<T, R>(skillName: string, params: T): Promise<R> {
     const skill = this.skills.get(skillName);
     if (!skill) {
       throw new Error(`Skill not found: ${skillName}`);
     }
-    
+
     const context: SkillContext = {
       llm: this.llm,
       knowledgeGraph: this.knowledgeGraph,
-      embedder: this.embedder
+      embedder: this.embedder,
     };
-    
+
     return await skill.execute(params, context);
   }
 }
@@ -645,14 +670,14 @@ graph TB
     O4["生成因果链"]
     O5["提取新模式"]
     O6["更新知识图谱"]
-    
+
     O1 --> O2
     O2 --> O3
     O3 --> O4
     O4 --> O5
     O5 --> O6
   end
-  
+
   subgraph Offline["离线学习 (后台)"]
     L1["收集历史预测"]
     L2["获取实际表现"]
@@ -660,17 +685,17 @@ graph TB
     L4["分析误差原因"]
     L5["调整关系权重"]
     L6["更新模式置信度"]
-    
+
     L1 --> L2
     L2 --> L3
     L3 --> L4
     L4 --> L5
     L5 --> L6
   end
-  
+
   O6 --> L1
   L6 --> O3
-  
+
   style Online fill:#e1f5fe
   style Offline fill:#fff3e0
 ```
@@ -683,21 +708,21 @@ graph TB
 async function retrieveSimilarCases(
   currentEvents: Event[],
   vectorStore: VectorStore,
-  topK: number = 5
+  topK: number = 5,
 ): Promise<HistoricalCase[]> {
   // 将当前事件向量化
-  const eventText = currentEvents.map(e => e.description).join(' ');
+  const eventText = currentEvents.map((e) => e.description).join(' ');
   const queryEmbedding = await embedder.embed(eventText);
-  
+
   // 检索相似历史案例
   const similarCases = await vectorStore.similaritySearch(queryEmbedding, {
     topK,
     filter: {
       // 只检索过去 2 年的案例
-      timestamp: { gte: Date.now() - 2 * 365 * 24 * 60 * 60 * 1000 }
-    }
+      timestamp: { gte: Date.now() - 2 * 365 * 24 * 60 * 60 * 1000 },
+    },
   });
-  
+
   return similarCases;
 }
 ```
@@ -705,24 +730,30 @@ async function retrieveSimilarCases(
 #### 2. 模式提取（在线）
 
 ```typescript
-async function extractPatterns(causalChains: CausalChain[]): Promise<CausalPattern[]> {
+async function extractPatterns(
+  causalChains: CausalChain[],
+): Promise<CausalPattern[]> {
   // 使用 LLM 从具体案例中抽象通用模式
   const prompt = `
     从以下 ${causalChains.length} 条因果链中提取通用因果模式：
     
-    ${causalChains.map((chain, i) => `
+    ${causalChains
+      .map(
+        (chain, i) => `
       【案例 ${i + 1}】
       事件：${chain.startEvent.type} - ${chain.startEvent.description}
-      传导：${chain.steps.map(s => `${s.event} → ${s.impact}`).join(' → ')}
+      传导：${chain.steps.map((s) => `${s.event} → ${s.impact}`).join(' → ')}
       行业：${chain.affectedIndustries.join(', ')}
-    `).join('\n')}
+    `,
+      )
+      .join('\n')}
     
     提取通用模式：
     1. 事件类型 → 直接影响 → 二级影响 → 最终行业
     2. 标注每个环节的置信度
     3. 识别模式边界（什么情况下不适用）
   `;
-  
+
   const response = await llm.invoke(prompt);
   return parsePatterns(response);
 }
@@ -736,48 +767,51 @@ class PredictionValidator {
   async validateHistoricalPredictions(): Promise<ValidationReport> {
     const predictions = await this.loadPredictions({
       status: 'pending_validation',
-      createdAfter: Date.now() - 30 * 24 * 60 * 60 * 1000  // 过去 30 天
+      createdAfter: Date.now() - 30 * 24 * 60 * 60 * 1000, // 过去 30 天
     });
-    
+
     const results = await Promise.all(
       predictions.map(async (prediction) => {
         const actualPerformance = await this.fetchActualPerformance(
           prediction.stockSymbol,
-          prediction.predictionDate
+          prediction.predictionDate,
         );
-        
-        return await this.validateSinglePrediction(prediction, actualPerformance);
-      })
+
+        return await this.validateSinglePrediction(
+          prediction,
+          actualPerformance,
+        );
+      }),
     );
-    
+
     return this.generateValidationReport(results);
   }
-  
+
   // 单个预测验证
   private async validateSinglePrediction(
     prediction: StockPrediction,
-    actual: StockPerformance
+    actual: StockPerformance,
   ): Promise<SingleValidationResult> {
     const accuracy = this.calculateAccuracy(prediction, actual);
-    
+
     // 如果准确度低，分析原因
     let errorAnalysis: ErrorAnalysis | null = null;
     if (accuracy < 0.7) {
       errorAnalysis = await this.analyzeError(prediction, actual);
     }
-    
+
     return {
       predictionId: prediction.id,
       accuracy,
       errorAnalysis,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
-  
+
   // 误差分析
   private async analyzeError(
     prediction: StockPrediction,
-    actual: StockPerformance
+    actual: StockPerformance,
   ): Promise<ErrorAnalysis> {
     const prompt = `
       预测准确度低，请分析原因：
@@ -795,7 +829,7 @@ class PredictionValidator {
       
       请指出最可能的原因，并给出改进建议。
     `;
-    
+
     const response = await this.llm.invoke(prompt);
     return parseErrorAnalysis(response);
   }
@@ -813,41 +847,44 @@ class ConfidenceTracker {
       timestamp: number;
       predictedConfidence: number;
       actualAccuracy?: number;
-    }>
+    }>,
   ): Promise<number> {
     // 使用贝叶斯更新置信度
     const priorConfidence = events[0].predictedConfidence;
     const likelihoods = events
-      .filter(e => e.actualAccuracy !== undefined)
-      .map(e => e.actualAccuracy!);
-    
+      .filter((e) => e.actualAccuracy !== undefined)
+      .map((e) => e.actualAccuracy!);
+
     // 贝叶斯公式：后验 ∝ 先验 × 似然
     const posteriorConfidence = this.bayesianUpdate(
       priorConfidence,
-      likelihoods
+      likelihoods,
     );
-    
+
     // 更新知识图谱中的置信度
-    await this.neo4j.run(`
+    await this.neo4j.run(
+      `
       MATCH (e:Event {id: $chainId})
       SET e.confidence = $confidence,
           e.lastUpdated = timestamp()
-    `, { chainId, confidence: posteriorConfidence });
-    
+    `,
+      { chainId, confidence: posteriorConfidence },
+    );
+
     return posteriorConfidence;
   }
-  
+
   // 贝叶斯更新
   private bayesianUpdate(prior: number, likelihoods: number[]): number {
     const n = likelihoods.length;
     if (n === 0) return prior;
-    
+
     const avgLikelihood = likelihoods.reduce((a, b) => a + b, 0) / n;
-    
+
     // 加权平均（先验权重随样本数增加而降低）
     const priorWeight = 1 / (n + 1);
     const dataWeight = n / (n + 1);
-    
+
     return prior * priorWeight + avgLikelihood * dataWeight;
   }
 }
@@ -864,13 +901,13 @@ class ConfidenceTracker {
 type NodeLabel = 'Event' | 'Industry' | 'Stock' | 'CausalPattern';
 
 // 关系类型
-type RelationshipType = 
-  | 'CAUSES'           // 事件→事件
-  | 'AFFECTS'          // 事件→行业
-  | 'BELONGS_TO'       // 行业→行业（子行业）
-  | 'IMPACTS'          // 行业→股票
-  | 'SIMILAR_TO'       // 事件→事件（相似案例）
-  | 'DERIVED_FROM';    // 模式→案例
+type RelationshipType =
+  | 'CAUSES' // 事件→事件
+  | 'AFFECTS' // 事件→行业
+  | 'BELONGS_TO' // 行业→行业（子行业）
+  | 'IMPACTS' // 行业→股票
+  | 'SIMILAR_TO' // 事件→事件（相似案例）
+  | 'DERIVED_FROM'; // 模式→案例
 
 // 事件节点
 interface EventNode {
@@ -882,8 +919,8 @@ interface EventNode {
     description: string;
     timestamp: number;
     source: string;
-    embedding: number[];  // 向量嵌入
-    confidence: number;   // 置信度
+    embedding: number[]; // 向量嵌入
+    confidence: number; // 置信度
   };
 }
 
@@ -893,9 +930,9 @@ interface IndustryNode {
   label: 'Industry';
   properties: {
     name: string;
-    sector: string;  // 一级行业
-    subsector?: string;  // 二级行业
-    sensitivity: number;  // 对事件的敏感度
+    sector: string; // 一级行业
+    subsector?: string; // 二级行业
+    sensitivity: number; // 对事件的敏感度
     historicalReactions: HistoricalReaction[];
   };
 }
@@ -920,13 +957,13 @@ interface StockNode {
 
 // 因果关系
 interface CausalRelation {
-  source: string;  // Event ID
-  target: string;  // Event ID 或 Industry ID
+  source: string; // Event ID
+  target: string; // Event ID 或 Industry ID
   type: 'CAUSES' | 'AFFECTS';
   properties: {
-    strength: number;      // 因果强度 [0, 1]
-    confidence: number;    // 置信度
-    delay: number;         // 影响延迟（天）
+    strength: number; // 因果强度 [0, 1]
+    confidence: number; // 置信度
+    delay: number; // 影响延迟（天）
     learnedFrom: string[]; // 来源案例 ID
     lastUpdated: number;
   };
@@ -939,28 +976,32 @@ interface CausalRelation {
 class KnowledgeGraphQueries {
   // 查询事件影响的行业
   async queryEventImpact(eventId: string): Promise<IndustryImpact[]> {
-    const result = await this.neo4j.run(`
+    const result = await this.neo4j.run(
+      `
       MATCH (e:Event {id: $eventId})-[r:AFFECTS]->(i:Industry)
       RETURN i.name, i.sector, r.strength, r.confidence, r.delay
       ORDER BY r.strength DESC
-    `, { eventId });
-    
-    return result.records.map(record => ({
+    `,
+      { eventId },
+    );
+
+    return result.records.map((record) => ({
       industry: record.get('i.name'),
       sector: record.get('i.sector'),
       strength: record.get('r.strength'),
       confidence: record.get('r.confidence'),
-      delay: record.get('r.delay')
+      delay: record.get('r.delay'),
     }));
   }
-  
+
   // 查询相似历史事件
   async querySimilarEvents(
     queryEmbedding: number[],
-    topK: number = 5
+    topK: number = 5,
   ): Promise<HistoricalEvent[]> {
     // 使用向量相似度搜索
-    const result = await this.neo4j.run(`
+    const result = await this.neo4j.run(
+      `
       MATCH (e:Event)
       WHERE e.embedding IS NOT NULL
       WITH e, vector.similarity.cosine(e.embedding, $query) AS similarity
@@ -968,34 +1009,39 @@ class KnowledgeGraphQueries {
       RETURN e, similarity
       ORDER BY similarity DESC
       LIMIT $topK
-    `, { query: queryEmbedding, topK });
-    
-    return result.records.map(record => ({
+    `,
+      { query: queryEmbedding, topK },
+    );
+
+    return result.records.map((record) => ({
       event: record.get('e'),
-      similarity: record.get('similarity')
+      similarity: record.get('similarity'),
     }));
   }
-  
+
   // 查询行业的历史反应
   async queryIndustryHistory(
     industryName: string,
-    eventType: string
+    eventType: string,
   ): Promise<HistoricalReaction[]> {
-    const result = await this.neo4j.run(`
+    const result = await this.neo4j.run(
+      `
       MATCH (e:Event {type: $eventType})-[:AFFECTS]->(i:Industry {name: $industry})
       MATCH (i)-[:IMPACTS]->(s:Stock)
       RETURN e.timestamp, e.title, s.symbol, s.name, 
              s.historicalReactions AS reactions
       ORDER BY e.timestamp DESC
       LIMIT 10
-    `, { eventType, industry: industryName });
-    
-    return result.records.map(record => ({
+    `,
+      { eventType, industry: industryName },
+    );
+
+    return result.records.map((record) => ({
       eventTimestamp: record.get('e.timestamp'),
       eventTitle: record.get('e.title'),
       stockSymbol: record.get('s.symbol'),
       stockName: record.get('s.name'),
-      reactions: record.get('reactions')
+      reactions: record.get('reactions'),
     }));
   }
 }
@@ -1020,16 +1066,16 @@ sequenceDiagram
   participant Exec as 执行层
   participant NewsAPI as 新闻 API
   participant StockAPI as 股票 API
-  
+
   User->>Web: 选择日期，点击分析
   Web->>Gateway: POST /api/analyze { date: '2026-03-21' }
   Gateway->>Gateway: 生成任务 ID
   Gateway->>Queue: 入队分析任务
   Gateway-->>Web: 返回任务 ID
   Web->>Gateway: WebSocket 连接，订阅进度
-  
+
   Gateway->>Agent: 触发分析任务
-  
+
   par 并行执行
     Agent->>Exec: 采集新闻
     Exec->>NewsAPI: 请求当日新闻
@@ -1039,22 +1085,22 @@ sequenceDiagram
     Agent->>KG: 检索相似历史案例
     KG-->>Agent: 历史案例（Few-shot）
   end
-  
+
   Agent->>Agent: 使用 Skills 提取事件
-  
+
   Agent->>Agent: 推导因果链<br/>（使用 Few-shot 示例）
-  
+
   Agent->>KG: 查询行业关系
-  
+
   Agent->>Agent: 筛选股票候选
-  
+
   Agent->>Agent: 自我学习<br/>（提取模式、更新图谱）
-  
+
   Agent->>Agent: 生成报告
-  
+
   Agent->>KG: 持久化因果链
   Agent->>Vector: 存储模式嵌入
-  
+
   Agent-->>Gateway: 分析完成
   Gateway->>Queue: 标记任务完成
   Gateway->>Web: WebSocket 推送完成通知
@@ -1071,28 +1117,28 @@ class ResultCache {
   private generateCacheKey(date: string, newsHash: string): string {
     return `analysis:${date}:${newsHash}`;
   }
-  
+
   // 检查缓存
   async get(date: string, newsHash: string): Promise<AnalysisReport | null> {
     const key = this.generateCacheKey(date, newsHash);
     const cached = await this.redis.get(key);
     return cached ? JSON.parse(cached) : null;
   }
-  
+
   // 设置缓存（过期时间 7 天）
   async set(
     date: string,
     newsHash: string,
-    report: AnalysisReport
+    report: AnalysisReport,
   ): Promise<void> {
     const key = this.generateCacheKey(date, newsHash);
     await this.redis.setex(key, 7 * 24 * 60 * 60, JSON.stringify(report));
   }
-  
+
   // 缓存失效（当知识图谱更新时）
   async invalidateForEvent(eventId: string): Promise<void> {
     const affectedDates = await this.findAffectedDates(eventId);
-    const keys = affectedDates.map(d => `analysis:${d}:*`);
+    const keys = affectedDates.map((d) => `analysis:${d}:*`);
     await this.redis.del(...keys);
   }
 }
@@ -1140,12 +1186,12 @@ class ResultCache {
 
 ### LLM 选择
 
-| 场景 | 推荐模型 | 理由 |
-|------|----------|------|
-| 事件提取 | Qwen-Max / GPT-4 | 高精度，支持复杂指令 |
-| 因果推导 | Qwen-Max / GPT-4 | 逻辑推理能力强 |
-| 模式提取 | Qwen-Max / GPT-4 | 抽象概括能力 |
-| 报告生成 | Qwen-Plus / GPT-3.5 | 成本效益高 |
+| 场景     | 推荐模型            | 理由                 |
+| -------- | ------------------- | -------------------- |
+| 事件提取 | Qwen-Max / GPT-4    | 高精度，支持复杂指令 |
+| 因果推导 | Qwen-Max / GPT-4    | 逻辑推理能力强       |
+| 模式提取 | Qwen-Max / GPT-4    | 抽象概括能力         |
+| 报告生成 | Qwen-Plus / GPT-3.5 | 成本效益高           |
 
 ---
 
@@ -1227,7 +1273,7 @@ kline/
 │   │       ├── lancedb-driver.ts
 │   │       └── pattern-store.ts
 │   │
-│   ├── infrastructure/
+│   ├── infra/
 │   │   ├── queue/
 │   │   │   └── analysis-queue.ts
 │   │   ├── cache/
@@ -1268,6 +1314,7 @@ kline/
 ## 下一步行动
 
 ### Phase 1: MVP（2 周）
+
 - [ ] 搭建基础架构（Gateway + Queue）
 - [ ] 实现 LangGraph 状态图
 - [ ] 实现基础 Skills（事件提取、因果推导）
@@ -1275,18 +1322,21 @@ kline/
 - [ ] 简单报告生成
 
 ### Phase 2: 知识图谱（2 周）
+
 - [ ] 部署 Neo4j
 - [ ] 实现知识图谱 Repository
 - [ ] 实现向量检索（LanceDB）
 - [ ] 集成 Few-shot 学习
 
 ### Phase 3: 自我学习（2 周）
+
 - [ ] 实现模式提取技能
 - [ ] 实现预测验证机制
 - [ ] 实现置信度追踪
 - [ ] 实现反馈闭环
 
 ### Phase 4: 前端与优化（2 周）
+
 - [ ] 开发 React 日历界面
 - [ ] 实现因果链可视化
 - [ ] 性能优化

@@ -1,5 +1,5 @@
 import type { AnalysisState } from '../state.js';
-import { newsCollector } from '../../../infrastructure/outbound/news-api-adapter.js';
+import { newsCollector } from '../../../infra/outbound/news-api-adapter.js';
 import { logger } from '../../../logging/index.js';
 
 export async function collectNewsNode(

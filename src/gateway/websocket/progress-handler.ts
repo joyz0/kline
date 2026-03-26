@@ -1,7 +1,7 @@
 import type { WebSocketServer } from 'ws';
 import type { IncomingMessage } from 'http';
 import { logger } from '../../logging/index.js';
-import { analysisQueue } from '../../infrastructure/queue/analysis-queue.js';
+import { analysisQueue } from '../../infra/queue/analysis-queue.js';
 
 export async function setupWebSocket(wsServer: WebSocketServer) {
   wsServer.on('connection', (socket, req: IncomingMessage) => {

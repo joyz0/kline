@@ -1,4 +1,4 @@
-import { analysisQueue } from '../infrastructure/queue/analysis-queue.js';
+import { analysisQueue } from '../infra/queue/analysis-queue.js';
 import { agentRuntime } from '../agent/agent-runtime.js';
 import { cacheReport } from '../gateway/routes/report.route.js';
 import { logger } from '../logging/index.js';

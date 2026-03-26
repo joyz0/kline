@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from 'express';
-import { analysisQueue } from '../../infrastructure/queue/analysis-queue.js';
+import { analysisQueue } from '../../infra/queue/analysis-queue.js';
 import { logger } from '../../logging/index.js';
 import { z } from 'zod';
 

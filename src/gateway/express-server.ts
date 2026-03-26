@@ -15,7 +15,7 @@ import {
   setupBrowserWebSocket,
   stopBrowserWebSocket,
 } from './websocket/browser-ws.js';
-import { closeRedis } from '../infrastructure/queue/redis-client.js';
+import { closeRedis } from '../infra/queue/redis-client.js';
 import { registerBrowserHandlers } from './server-methods/browser.js';
 
 export interface ExpressServer {

@@ -214,7 +214,7 @@ kline/
 │   │   ├── stock-recommender.ts     # 股票推荐
 │   │   └── report-generator.ts      # 报告生成
 │   │
-│   ├── infrastructure/       # 基础设施
+│   ├── infra/       # 基础设施
 │   │   ├── queue/            # 任务队列
 │   │   │   ├── analysis-queue.ts    # 分析队列
 │   │   │   └── redis-client.ts      # Redis 客户端
@@ -366,7 +366,7 @@ WS     /ws/progress          # 进度推送
 
 ### 4. Infrastructure (基础设施)
 
-**位置**: [`src/infrastructure/`](src/infrastructure/)
+**位置**: [`src/infra/`](src/infra/)
 
 **核心职责**:
 
@@ -376,9 +376,9 @@ WS     /ws/progress          # 进度推送
 
 **关键文件**:
 
-- [`analysis-queue.ts`](src/infrastructure/queue/analysis-queue.ts) - 分析队列
-- [`redis-client.ts`](src/infrastructure/queue/redis-client.ts) - Redis 客户端
-- [`result-cache.ts`](src/infrastructure/cache/result-cache.ts) - 结果缓存
+- [`analysis-queue.ts`](src/infra/queue/analysis-queue.ts) - 分析队列
+- [`redis-client.ts`](src/infra/queue/redis-client.ts) - Redis 客户端
+- [`result-cache.ts`](src/infra/cache/result-cache.ts) - 结果缓存
 
 ### 5. Config Module (配置模块)
 

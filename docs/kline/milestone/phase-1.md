@@ -3,17 +3,20 @@
 ## ✅ 已完成任务
 
 ### 1. 项目初始化
+
 - [x] 创建 package.json 和 TypeScript 配置
 - [x] 配置环境变量 (.env.example)
 - [x] 设置 .gitignore
 - [x] 安装所有依赖 (pnpm)
 
 ### 2. 核心架构
+
 - [x] **配置系统**: 使用 Zod 进行类型安全的环境验证
 - [x] **日志系统**: Pino 结构化日志
 - [x] **类型系统**: 完整的 TypeScript 类型定义
 
 ### 3. Gateway Layer (网关层)
+
 - [x] **Fastify 服务器**: REST API + CORS + WebSocket
 - [x] **路由**:
   - `POST /api/analyze` - 提交分析任务
@@ -25,12 +28,14 @@
 - [x] **任务编排器**: 协调队列和 Agent 执行
 
 ### 4. 任务队列 (Bull + Redis)
+
 - [x] **分析队列**: 支持重试、退避策略
 - [x] **进度追踪**: 实时更新任务进度
 - [x] **状态管理**: PENDING/PROCESSING/COMPLETED/FAILED
 - [x] **Redis 客户端**: 连接管理、错误处理
 
 ### 5. Agent Layer (LangGraph)
+
 - [x] **状态图**: 完整的因果分析流程
   - `news_collector` - 新闻采集节点
   - `event_extractor` - 事件提取节点
@@ -41,6 +46,7 @@
 - [x] **Agent 运行时**: 图执行引擎
 
 ### 6. Execution Layer (执行层)
+
 - [x] **新闻采集器**: 支持多源采集（模拟数据）
   - 新浪财经
   - 东方财富
@@ -59,6 +65,7 @@
 - [x] **报告生成器**: 结构化报告输出
 
 ### 7. 基础设施
+
 - [x] **结果缓存**: Redis 缓存（7 天 TTL）
 - [x] **错误处理**: 节点级错误捕获
 - [x] **重试机制**: Bull 队列自动重试（3 次）
@@ -99,7 +106,7 @@ src/
 │   ├── causal-chain-inferrer.ts
 │   ├── stock-recommender.ts
 │   └── report-generator.ts
-├── infrastructure/
+├── infra/
 │   ├── queue/
 │   │   ├── redis-client.ts
 │   │   └── analysis-queue.ts
@@ -116,13 +123,14 @@ src/
 ### 前置要求
 
 1. **安装 Redis**
+
    ```bash
    # macOS
    brew install redis
-   
+
    # 启动 Redis
    redis-server
-   
+
    # 或使用 Docker
    docker run -d -p 6379:6379 redis:latest
    ```
@@ -155,6 +163,7 @@ curl -X POST http://localhost:3000/api/analyze \
 ```
 
 响应：
+
 ```json
 {
   "taskId": "uuid",
@@ -195,6 +204,7 @@ ws.onmessage = (event) => {
 ```
 
 **推荐股票**：
+
 - 中国石油 (601857) - BUY
 - 中远海控 (601919) - HOLD
 - 隆基绿能 (601012) - BUY
@@ -246,17 +256,20 @@ curl http://localhost:3000/api/tasks/{taskId}
 ## 📝 下一步行动
 
 ### Phase 2: 知识图谱（2 周）
+
 - [ ] 部署 Neo4j
 - [ ] 实现图谱 Repository
 - [ ] 集成 LanceDB 向量检索
 - [ ] Few-shot 学习增强
 
 ### Phase 3: 自我学习（2 周）
+
 - [ ] 模式提取技能
 - [ ] 预测验证机制
 - [ ] 置信度追踪
 
 ### Phase 4: 前端（2 周）
+
 - [ ] React 日历界面
 - [ ] 因果链可视化
 - [ ] 报告展示页面
