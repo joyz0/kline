@@ -4,7 +4,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
-import { logger } from '../../logging/index.js';
+import { logger } from '../../../logging/index.js';
 import type { StockQuotesService } from '../stockQuotesService.js';
 import { registerToolsOnServer } from '../toolRegistration.js';
 import type { TransportStrategy } from './TransportStrategy.js';
@@ -66,6 +66,10 @@ export class HttpTransportStrategy implements TransportStrategy {
 
       this.httpServer.on('listening', () => {
         logger.info(
+          {
+            url: `http://localhost:${this.httpPort}/mcp`,
+            port: this.httpPort,
+          },
           `MCP Server running on http://localhost:${this.httpPort}/mcp`,
         );
         resolve();
@@ -73,13 +77,21 @@ export class HttpTransportStrategy implements TransportStrategy {
 
       this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
         if (error.code === 'EADDRINUSE') {
-          logger.error(`Port ${this.httpPort} is already in use`, {
-            port: this.httpPort,
-          });
+          logger.error(
+            {
+              port: this.httpPort,
+              code: error.code,
+            },
+            `Port ${this.httpPort} is already in use`,
+          );
         } else {
-          logger.error(`Error starting HTTP server: ${error.message}`, {
-            error,
-          });
+          logger.error(
+            {
+              error: error.message,
+              code: error.code,
+            },
+            `Error starting HTTP server: ${error.message}`,
+          );
         }
         reject(new Error(`Failed to start HTTP server: ${error.message}`));
       });
@@ -133,7 +145,7 @@ export class HttpTransportStrategy implements TransportStrategy {
           await transport.close();
         });
       } catch (error) {
-        logger.error('Error handling MCP request', { error });
+        logger.error({ error }, 'Error handling MCP request');
         if (!res.headersSent) {
           res.status(500).json({
             jsonrpc: '2.0',

@@ -10,6 +10,7 @@ import {
 import NodeCache from 'node-cache';
 import { NotFoundError, RateLimitError, ValidationError } from './errors.js';
 import { logger } from '../../logging/index.js';
+import type { YahooClient } from './yahooFinanceClient.js';
 import type {
   HistoricalData,
   StockQuoteInput,
@@ -20,8 +21,7 @@ import type {
   YahooQuote,
   YahooSearchQuote,
   YahooSearchResponse,
-} from './types.js';
-import type { YahooClient } from './yahooFinanceClient.js';
+} from './zod.schema.js';
 
 /**
  * Service for fetching stock quotes from Yahoo Finance
@@ -50,7 +50,7 @@ export class StockQuotesService {
 
     const cachedResponse = this.cache.get<StockQuoteResponse>(cacheKey);
     if (cachedResponse) {
-      logger.debug('Cache hit for stock quote', { ticker, cacheKey });
+      logger.debug({ ticker, cacheKey }, 'Cache hit for stock quote');
       return cachedResponse;
     }
 
@@ -102,10 +102,10 @@ export class StockQuotesService {
 
     const cachedResponse = this.cache.get<StockQuoteResponse[]>(cacheKey);
     if (cachedResponse) {
-      logger.debug('Cache hit for multiple stock quotes', {
-        tickers,
-        cacheKey,
-      });
+      logger.debug(
+        { tickers, cacheKey },
+        'Cache hit for multiple stock quotes',
+      );
       return cachedResponse;
     }
 
@@ -258,7 +258,7 @@ export class StockQuotesService {
         const quote = await this.getQuote({ ticker });
         results.set(ticker, quote);
       } catch (error) {
-        logger.error(`Failed to fetch quote for ${ticker}`, { ticker, error });
+        logger.error({ ticker, error }, `Failed to fetch quote for ${ticker}`);
       }
     }
 
@@ -275,7 +275,7 @@ export class StockQuotesService {
     const cachedResults = this.cache.get<StockSearchResult[]>(cacheKey);
 
     if (cachedResults) {
-      logger.debug('Cache hit for search', { query, cacheKey });
+      logger.debug({ query, cacheKey }, 'Cache hit for search');
       return cachedResults;
     }
 
@@ -395,10 +395,10 @@ export class StockQuotesService {
         throw error;
       }
 
-      logger.error(`Error fetching historical data for ${ticker}`, {
-        ticker,
-        error,
-      });
+      logger.error(
+        { ticker, error },
+        `Error fetching historical data for ${ticker}`,
+      );
       throw new NotFoundError(
         `Could not fetch historical data for ${ticker}. Please check the ticker and date range.`,
       );

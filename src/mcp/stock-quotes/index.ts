@@ -39,7 +39,7 @@ function parseArgs(): {
           if (['stdio', 'http'].includes(transport)) {
             result.transport = transport;
           } else {
-            logger.error(`Invalid transport: ${transport}`);
+            logger.error({ transport }, `Invalid transport: ${transport}`);
             process.exit(1);
           }
         }
@@ -54,7 +54,10 @@ function parseArgs(): {
             result.httpPort <= 0 ||
             result.httpPort > 65535
           ) {
-            logger.error('Invalid HTTP port. Port must be between 1 and 65535');
+            logger.error(
+              { port: result.httpPort },
+              'Invalid HTTP port. Port must be between 1 and 65535',
+            );
             process.exit(1);
           }
         }
@@ -126,15 +129,21 @@ For more information, visit: https://github.com/lionelschiepers/StockQuotes.MCP
  * Main function to start the server
  */
 async function main(): Promise<void> {
-  logger.info('MCP Stock Quotes Server starting');
+  logger.info(
+    { component: 'mcp-stock-quotes' },
+    'MCP Stock Quotes Server starting',
+  );
 
   const args = parseArgs();
 
-  logger.info(`Starting server with ${args.transport} transport...`, {
-    transport: args.transport,
-    port: args.httpPort,
-    host: args.httpHost,
-  });
+  logger.info(
+    {
+      transport: args.transport,
+      port: args.httpPort,
+      host: args.httpHost,
+    },
+    `Starting server with ${args.transport} transport...`,
+  );
 
   try {
     await createServer({
@@ -145,25 +154,28 @@ async function main(): Promise<void> {
       httpHost: args.httpHost,
     });
 
-    logger.info('Server started successfully');
+    logger.info(
+      { component: 'mcp-stock-quotes' },
+      'Server started successfully',
+    );
 
     if (args.transport === 'http') {
       await new Promise(() => {});
     }
   } catch (error) {
-    logger.error('Failed to start server', { error });
+    logger.error({ error }, 'Failed to start server');
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  logger.info('Shutting down server...');
+  logger.info({ signal: 'SIGINT' }, 'Shutting down server...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  logger.info('Shutting down server...');
+  logger.info({ signal: 'SIGTERM' }, 'Shutting down server...');
   process.exit(0);
 });
 
@@ -171,6 +183,6 @@ process.on('SIGTERM', () => {
 try {
   await main();
 } catch (error) {
-  logger.error('Unhandled error', { error });
+  logger.error({ error }, 'Unhandled error');
   process.exit(1);
 }

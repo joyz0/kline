@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { logger } from '../../logging/index.js';
+import { logger } from '../../../logging/index.js';
 import { registerToolsOnServer } from '../toolRegistration.js';
 import type { StockQuotesService } from '../stockQuotesService.js';
 import type { TransportStrategy } from './TransportStrategy.js';
@@ -36,7 +36,10 @@ export class StdioTransportStrategy implements TransportStrategy {
   async connect(): Promise<void> {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    logger.info('MCP Server connected via stdio transport');
+    logger.info(
+      { transport: 'stdio' },
+      'MCP Server connected via stdio transport',
+    );
   }
 
   /**

@@ -2,7 +2,7 @@ import type { StockQuotesService } from './stockQuotesService.js';
 import { StockQuotesService as StockQuotesServiceImpl } from './stockQuotesService.js';
 import { TransportFactory } from './transports/TransportFactory.js';
 import type { TransportStrategy } from './transports/TransportStrategy.js';
-import type { ServerConfig } from './types.js';
+import type { ServerConfig } from './zod.schema.js';
 import { YahooFinanceClient } from './yahooFinanceClient.js';
 
 type HttpTransportStrategy = TransportStrategy & {

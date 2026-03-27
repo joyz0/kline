@@ -28,7 +28,7 @@ export function registerToolsOnServer(
       inputSchema: StockQuoteSchema,
     },
     async ({ ticker, fields }) => {
-      logger.info('Fetching stock quote', { ticker, fields });
+      logger.info({ ticker, fields }, 'Fetching stock quote');
       const quote = await stockService.getQuote({ ticker, fields });
 
       return {
@@ -54,7 +54,7 @@ export function registerToolsOnServer(
       inputSchema: StockQuotesSchema,
     },
     async ({ tickers, fields }) => {
-      logger.info('Fetching multiple stock quotes', { tickers, fields });
+      logger.info({ tickers, fields }, 'Fetching multiple stock quotes');
       const quotes = await stockService.getQuotes({ tickers, fields });
 
       return {
@@ -79,7 +79,7 @@ export function registerToolsOnServer(
       inputSchema: StockSearchSchema,
     },
     async ({ query }) => {
-      logger.info('Searching stocks', { query });
+      logger.info({ query }, 'Searching stocks');
       const results = await stockService.search(query);
 
       return {
@@ -105,12 +105,15 @@ export function registerToolsOnServer(
       inputSchema: HistoricalDataSchema,
     },
     async ({ ticker, fromDate, toDate, fields }) => {
-      logger.info('Fetching historical data', {
-        ticker,
-        fromDate,
-        toDate,
-        fields,
-      });
+      logger.info(
+        {
+          ticker,
+          fromDate,
+          toDate,
+          fields,
+        },
+        'Fetching historical data',
+      );
       const closingPrices = await stockService.getHistoricalData(
         ticker,
         fromDate,

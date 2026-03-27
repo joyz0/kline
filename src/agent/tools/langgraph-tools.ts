@@ -1,6 +1,12 @@
 import { logger } from '../../logging/index.js';
 import { createWebFetchTool } from './web-fetch.js';
 import { createBrowserTool } from './browser.js';
+import {
+  createAkshareQuoteTool,
+  createAkshareQuotesTool,
+  createAkshareSearchTool,
+  createAkshareHistoricalDataTool,
+} from './akshare.js';
 
 /**
  * 工具注册表
@@ -35,6 +41,31 @@ export function initializeTools() {
   if (browserTool) {
     toolRegistry.set(browserTool.name, browserTool);
     logger.info({ tool: browserTool.name }, 'Browser tool registered');
+  }
+
+  // 注册 Akshare 工具
+  const akshareQuoteTool = createAkshareQuoteTool();
+  if (akshareQuoteTool) {
+    toolRegistry.set(akshareQuoteTool.name, akshareQuoteTool);
+    logger.info({ tool: akshareQuoteTool.name }, 'Akshare quote tool registered');
+  }
+
+  const akshareQuotesTool = createAkshareQuotesTool();
+  if (akshareQuotesTool) {
+    toolRegistry.set(akshareQuotesTool.name, akshareQuotesTool);
+    logger.info({ tool: akshareQuotesTool.name }, 'Akshare quotes tool registered');
+  }
+
+  const akshareSearchTool = createAkshareSearchTool();
+  if (akshareSearchTool) {
+    toolRegistry.set(akshareSearchTool.name, akshareSearchTool);
+    logger.info({ tool: akshareSearchTool.name }, 'Akshare search tool registered');
+  }
+
+  const akshareHistoricalDataTool = createAkshareHistoricalDataTool();
+  if (akshareHistoricalDataTool) {
+    toolRegistry.set(akshareHistoricalDataTool.name, akshareHistoricalDataTool);
+    logger.info({ tool: akshareHistoricalDataTool.name }, 'Akshare historical data tool registered');
   }
 
   logger.info({ count: toolRegistry.size }, 'Tools initialized');

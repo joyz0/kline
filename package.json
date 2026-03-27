@@ -16,7 +16,14 @@
     "start:stock-quotes:stdio": "pnpm start -- --transport stdio",
     "start:stock-quotes:http": "pnpm start -- --transport http --http-host localhost",
     "dev:stock-quotes": "tsx watch src/mcp/stock-quotes/index.ts --transport stdio",
-    "inspect:stock-quotes": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/stock-quotes/index.js"
+    "inspect:stock-quotes": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/stock-quotes/index.js",
+    "start:akshare-service": "node dist/mcp/akshare-service/index.js",
+    "dev:akshare-service": "tsx watch src/mcp/akshare-service/index.ts --transport stdio",
+    "inspect:akshare-service": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/akshare-service/index.js",
+    "dev:akshare-python": "cd akshare && uv run python -m akshare --transport stdio",
+    "start:akshare-python": "cd akshare && python -m akshare --transport stdio",
+    "start:akshare-python:http": "cd akshare && uv run python -m akshare --transport http --http-port 8000",
+    "test:akshare-python": "cd akshare && uv run python example.py"
   },
   "keywords": [
     "stock",

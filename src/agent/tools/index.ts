@@ -7,6 +7,13 @@
 export { createWebFetchTool } from './web-fetch.js';
 export { createBrowserTool } from './browser.js';
 export {
+  createAkshareQuoteTool,
+  createAkshareQuotesTool,
+  createAkshareSearchTool,
+  createAkshareHistoricalDataTool,
+  initializeAkshareTools,
+} from './akshare.js';
+export {
   initializeTools,
   callLangGraphTool,
   getRegisteredTools,
