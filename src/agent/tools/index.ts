@@ -12,6 +12,7 @@ export {
   createAkshareSearchTool,
   createAkshareHistoricalDataTool,
   initializeAkshareTools,
+  shutdownAkshareTools,
 } from './akshare.js';
 export {
   initializeTools,

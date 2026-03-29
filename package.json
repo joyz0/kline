@@ -38,6 +38,7 @@
     "@langchain/core": "^0.3.18",
     "@langchain/langgraph": "^0.2.26",
     "@langchain/openai": "^0.3.14",
+    "@modelcontextprotocol/inspector": "^0.21.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "bull": "^4.16.3",
     "chalk": "^5.6.2",

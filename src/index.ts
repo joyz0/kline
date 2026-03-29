@@ -5,6 +5,7 @@ import {
 import { analysisQueue } from './infra/queue/analysis-queue.js';
 import { taskOrchestrator } from './gateway/task-orchestrator.js';
 import { logger } from './logging/index.js';
+import { shutdownAkshareTools } from './agent/tools/index.js';
 
 async function bootstrap() {
   logger.info({ subsystem: 'gateway' }, 'Starting Kline server...');
@@ -39,6 +40,7 @@ async function bootstrap() {
         { signal },
         `Received ${signal}, shutting down gracefully...`,
       );
+      await shutdownAkshareTools();
       await closeExpressServer(expressServer);
       process.exit(0);
     });
