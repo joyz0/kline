@@ -17,6 +17,11 @@ full = [
     "pyrate-limiter>=3.0.0",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
 [project.scripts]
 akshare_mcp = "src.akshare_mcp:main"
 

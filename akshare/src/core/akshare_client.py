@@ -1,15 +1,20 @@
 """Akshare client for fetching stock data."""
 
+import importlib
 import logging
 from typing import Any
 
-import akshare as ak
 import pandas as pd
 
 from cache import get_cache_manager, get_rate_limiter
 from errors import DataFetchError, NotFoundError
 
 logger = logging.getLogger(__name__)
+
+
+def _get_akshare():
+    """Get akshare module (allows mocking in tests)."""
+    return importlib.import_module("akshare")
 
 
 class AkshareClient:
@@ -35,6 +40,9 @@ class AkshareClient:
         # Update cache TTL if specified
         if cache_ttl:
             self.cache_manager.ttl = cache_ttl
+
+        self.rate_limiter.calls = rate_limit_calls
+        self.rate_limiter.period = rate_limit_period
 
         logger.info(
             f"AkshareClient initialized with cache_ttl={cache_ttl}s, "
@@ -70,7 +78,7 @@ class AkshareClient:
             logger.info(f"Fetching realtime quote for {symbol}")
 
             # Fetch all A-share stocks spot data
-            df = ak.stock_zh_a_spot_em()
+            df = _get_akshare().stock_zh_a_spot_em()
 
             # Determine column names
             symbol_col = "代码" if "代码" in df.columns else "symbol"
@@ -143,7 +151,7 @@ class AkshareClient:
             logger.info(f"Searching stocks with query: {query}")
 
             # Fetch all A-share stocks
-            df = ak.stock_zh_a_spot_em()
+            df = _get_akshare().stock_zh_a_spot_em()
 
             # Determine column names
             symbol_col = "代码" if "代码" in df.columns else "symbol"
@@ -242,7 +250,7 @@ class AkshareClient:
             end_date_formatted = end_date.replace("-", "")
 
             # Fetch historical data
-            df = ak.stock_zh_a_hist(
+            df = _get_akshare().stock_zh_a_hist(
                 symbol=symbol,
                 period="daily",
                 start_date=start_date_formatted,
@@ -311,7 +319,7 @@ class AkshareClient:
             logger.info(f"Fetching stock info for {symbol}")
 
             # Fetch stock information
-            df = ak.stock_individual_info_em(symbol=symbol)
+            df = _get_akshare().stock_individual_info_em(symbol=symbol)
 
             if df.empty:
                 raise NotFoundError(f"Stock info not found for {symbol}")
@@ -331,7 +339,8 @@ class AkshareClient:
             return info
 
         except NotFoundError:
-            raise
+            logger.warning(f"Stock info not found for {symbol}")
+            return {}
         except Exception as e:
             logger.error(f"Error fetching stock info for {symbol}: {e}")
             # Return empty dict instead of raising
