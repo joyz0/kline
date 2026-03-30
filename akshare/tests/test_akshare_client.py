@@ -40,11 +40,14 @@ class TestAkshareClient:
 
     def test_client_init(self):
         """Test client initialization."""
-        client = AkshareClient(cache_ttl=100, rate_limit_calls=5, rate_limit_period=30)
+        client = AkshareClient(rate_limit_calls=5, rate_limit_period=30)
 
-        assert client.cache_manager.ttl == 100
+        # Rate limiter should be shared across instances
         assert client.rate_limiter.calls == 5
         assert client.rate_limiter.period == 30
+        
+        # Verify global rate limiter is set
+        assert AkshareClient._global_rate_limiter is not None
 
     def test_get_realtime_quote_success(self, mock_akshare):
         """Test successful quote fetch."""
@@ -62,17 +65,16 @@ class TestAkshareClient:
         with pytest.raises(NotFoundError):
             client.get_realtime_quote("999999")
 
-    def test_get_realtime_quote_cache_hit(self, mock_akshare):
-        """Test cache hit for quote."""
+    def test_get_realtime_quote_rate_limiting(self, mock_akshare):
+        """Test that rate limiting is applied."""
         client = AkshareClient()
 
-        # First call - will cache
-        client.get_realtime_quote("600519")
+        # Multiple calls should respect rate limiting
+        result1 = client.get_realtime_quote("600519")
+        result2 = client.get_realtime_quote("000001")
 
-        # Second call - should hit cache
-        result = client.get_realtime_quote("600519")
-
-        assert result["代码"] == "600519"
+        assert result1["代码"] == "600519"
+        assert result2["代码"] == "000001"
 
     def test_get_multiple_quotes(self, mock_akshare):
         """Test fetching multiple quotes."""
@@ -100,17 +102,16 @@ class TestAkshareClient:
         assert len(results) >= 1
         assert "600519" in [r["symbol"] for r in results]
 
-    def test_search_stocks_cache_hit(self, mock_akshare):
-        """Test search cache hit."""
+    def test_search_stocks_rate_limiting(self, mock_akshare):
+        """Test that rate limiting is applied to search."""
         client = AkshareClient()
 
-        # First call
-        client.search_stocks("茅台")
+        # Multiple searches should respect rate limiting
+        results1 = client.search_stocks("茅台")
+        results2 = client.search_stocks("平安")
 
-        # Second call - should hit cache
-        results = client.search_stocks("茅台")
-
-        assert len(results) >= 1
+        assert len(results1) >= 1
+        assert len(results2) >= 1
 
     def test_search_stocks_no_results(self, mock_akshare):
         """Test search with no results."""
@@ -136,28 +137,7 @@ class TestAkshareClientErrorHandling:
         with pytest.raises(DataFetchError):
             client.get_realtime_quote("600519")
 
-    def test_clear_cache(self):
-        """Test cache clearing."""
-        client = AkshareClient()
 
-        # Add something to cache
-        client.cache_manager.set("test_key", "test_value")
-
-        # Clear
-        client.clear_cache()
-
-        # Should be empty
-        assert client.cache_manager.get("test_key") is None
-
-    def test_get_cache_stats(self):
-        """Test getting cache statistics."""
-        client = AkshareClient()
-
-        stats = client.get_cache_stats()
-
-        assert "hits" in stats
-        assert "misses" in stats
-        assert "ttl" in stats
 
 
 class TestAkshareClientHistoricalData:

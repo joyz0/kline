@@ -2,9 +2,10 @@
 
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from akshare_client import AkshareClient
+from cache import CacheManager
 from errors import DataFetchError, NotFoundError, ValidationError
 from schemas import (
     HistoricalData,
@@ -20,16 +21,29 @@ logger = logging.getLogger(__name__)
 
 
 class StockQuotesService:
-    """Service for fetching stock quotes and related data."""
+    """
+    Service for fetching stock quotes and related data.
+    
+    Manages caching at the service layer to separate business logic
+    from data access concerns.
+    """
 
-    def __init__(self, akshare_client: Optional[AkshareClient] = None):
+    def __init__(
+        self,
+        akshare_client: Optional[AkshareClient] = None,
+        cache_ttl: int = 300,
+    ):
         """
         Initialize the StockQuotesService.
 
         Args:
             akshare_client: Optional AkshareClient instance
+            cache_ttl: Default cache time to live in seconds (default: 5 minutes)
         """
         self.akshare_client = akshare_client or AkshareClient()
+        self.cache_manager = CacheManager(maxsize=1000, ttl=cache_ttl)
+        
+        logger.info(f"StockQuotesService initialized with cache_ttl={cache_ttl}s")
 
     def get_quote(self, input_data: StockQuoteInput) -> StockQuoteResponse:
         """
@@ -47,6 +61,13 @@ class StockQuotesService:
         """
         ticker = input_data.ticker
         fields = input_data.fields
+        cache_key = f"quote:{ticker}:{','.join(fields) if fields else 'all'}"
+
+        # Check cache first
+        cached_response = self.cache_manager.get(cache_key)
+        if cached_response is not None:
+            logger.info(f"Cache hit for quote: {ticker}")
+            return cached_response
 
         try:
             # Fetch realtime quote data
@@ -54,6 +75,9 @@ class StockQuotesService:
 
             # Map to StockQuoteResponse
             response = self._map_to_quote_response(quote_data, ticker, fields)
+
+            # Cache the result
+            self.cache_manager.set(cache_key, response)
 
             return response
 
@@ -75,6 +99,14 @@ class StockQuotesService:
         """
         tickers = input_data.tickers
         fields = input_data.fields
+        sorted_tickers = sorted(tickers)
+        cache_key = f"quotes:{','.join(sorted_tickers)}:{','.join(fields) if fields else 'all'}"
+
+        # Check cache first
+        cached_responses = self.cache_manager.get(cache_key)
+        if cached_responses is not None:
+            logger.info(f"Cache hit for multiple quotes: {sorted_tickers}")
+            return cached_responses
 
         results = []
         for ticker in tickers:
@@ -84,6 +116,9 @@ class StockQuotesService:
             except Exception as e:
                 logger.warning(f"Failed to fetch quote for {ticker}: {e}")
                 # Continue with other tickers
+
+        # Cache the results
+        self.cache_manager.set(cache_key, results)
 
         return results
 
@@ -98,6 +133,13 @@ class StockQuotesService:
             list[StockSearchResult]: List of search results
         """
         query = input_data.query
+        cache_key = f"search:{query}"
+
+        # Check cache first
+        cached_results = self.cache_manager.get(cache_key)
+        if cached_results is not None:
+            logger.info(f"Cache hit for search: {query}")
+            return cached_results
 
         try:
             search_results = self.akshare_client.search_stocks(query)
@@ -111,6 +153,9 @@ class StockQuotesService:
                 )
                 for item in search_results
             ]
+
+            # Cache the result (30 minutes for search)
+            self.cache_manager.set(cache_key, results, ttl=1800)
 
             return results
 
@@ -138,6 +183,13 @@ class StockQuotesService:
         from_date = input_data.from_date
         to_date = input_data.to_date
         fields = input_data.fields
+        cache_key = f"history:{ticker}:{from_date}:{to_date}:{','.join(fields) if fields else 'all'}"
+
+        # Check cache first
+        cached_data = self.cache_manager.get(cache_key)
+        if cached_data is not None:
+            logger.info(f"Cache hit for historical data: {ticker}")
+            return cached_data
 
         # Validate dates
         self._validate_dates(from_date, to_date)
@@ -150,6 +202,9 @@ class StockQuotesService:
 
             # Map to HistoricalData list
             historical_data = self._map_to_historical_data(df, fields)
+
+            # Cache the result (1 hour for historical data)
+            self.cache_manager.set(cache_key, historical_data, ttl=3600)
 
             return historical_data
 
@@ -372,3 +427,12 @@ class StockQuotesService:
             return float(value)
         except (ValueError, TypeError):
             return None
+
+    def clear_cache(self) -> None:
+        """Clear all cached data."""
+        self.cache_manager.clear()
+        logger.info("Cache cleared")
+
+    def get_cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        return self.cache_manager.get_stats()

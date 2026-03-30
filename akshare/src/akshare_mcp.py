@@ -43,7 +43,7 @@ def get_stock_service():
     if _stock_service is None:
         try:
             from src.core.akshare_client import AkshareClient
-            from src.core.stock_quotes_service import StockQuotesService
+            from akshare.src.core.akshare_service import StockQuotesService
 
             client = AkshareClient()
             _stock_service = StockQuotesService(akshare_client=client)

@@ -2,11 +2,12 @@
 
 import importlib
 import logging
-from typing import Any
+import threading
+from typing import Any, Optional
 
 import pandas as pd
 
-from cache import get_cache_manager, get_rate_limiter
+from cache import RateLimiter
 from errors import DataFetchError, NotFoundError
 
 logger = logging.getLogger(__name__)
@@ -18,11 +19,19 @@ def _get_akshare():
 
 
 class AkshareClient:
-    """Client for interacting with Akshare API with cache and rate limiting."""
+    """
+    Client for interacting with Akshare API with rate limiting.
+    
+    All instances share a global rate limiter to ensure API calls
+    are properly throttled across the entire application.
+    """
+
+    # Class-level shared rate limiter (all instances share the same limiter)
+    _global_rate_limiter: Optional[RateLimiter] = None
+    _rate_limiter_lock = threading.Lock()
 
     def __init__(
         self,
-        cache_ttl: int = 300,
         rate_limit_calls: int = 10,
         rate_limit_period: int = 60,
     ):
@@ -30,24 +39,22 @@ class AkshareClient:
         Initialize the Akshare client.
 
         Args:
-            cache_ttl: Cache time to live in seconds (default: 5 minutes)
             rate_limit_calls: Number of calls allowed per period
             rate_limit_period: Rate limit period in seconds
         """
-        self.cache_manager = get_cache_manager()
-        self.rate_limiter = get_rate_limiter()
+        # Initialize global rate limiter if not exists
+        if AkshareClient._global_rate_limiter is None:
+            with AkshareClient._rate_limiter_lock:
+                if AkshareClient._global_rate_limiter is None:
+                    AkshareClient._global_rate_limiter = RateLimiter(
+                        calls=rate_limit_calls,
+                        period=rate_limit_period,
+                    )
+                    logger.info(
+                        f"Global rate limiter initialized: {rate_limit_calls} calls per {rate_limit_period}s"
+                    )
 
-        # Update cache TTL if specified
-        if cache_ttl:
-            self.cache_manager.ttl = cache_ttl
-
-        self.rate_limiter.calls = rate_limit_calls
-        self.rate_limiter.period = rate_limit_period
-
-        logger.info(
-            f"AkshareClient initialized with cache_ttl={cache_ttl}s, "
-            f"rate_limit={rate_limit_calls} calls per {rate_limit_period}s"
-        )
+        self.rate_limiter = AkshareClient._global_rate_limiter
 
     def get_realtime_quote(self, symbol: str) -> dict[str, Any]:
         """
@@ -63,13 +70,6 @@ class AkshareClient:
             NotFoundError: If the symbol is not found
             DataFetchError: If data fetching fails
         """
-        # Check cache first
-        cache_key = f"quote:{symbol}"
-        cached_data = self.cache_manager.get(cache_key)
-        if cached_data is not None:
-            logger.info(f"Cache hit for {symbol}")
-            return cached_data
-
         # Apply rate limiting
         logger.debug(f"Acquiring rate limit token for {symbol}")
         self.rate_limiter.wait_and_acquire(resource="quote")
@@ -92,12 +92,7 @@ class AkshareClient:
                 raise NotFoundError(f"Stock symbol '{symbol}' not found")
 
             # Convert to dict and return first row
-            result = quote_data.iloc[0].to_dict()
-
-            # Cache the result
-            self.cache_manager.set(cache_key, result)
-
-            return result
+            return quote_data.iloc[0].to_dict()
 
         except NotFoundError:
             raise
@@ -137,13 +132,6 @@ class AkshareClient:
         Returns:
             list: List of matching stocks with symbol, name, and exchange
         """
-        # Check cache first
-        cache_key = f"search:{query}"
-        cached_data = self.cache_manager.get(cache_key)
-        if cached_data is not None:
-            logger.info(f"Cache hit for search: {query}")
-            return cached_data
-
         # Apply rate limiting
         self.rate_limiter.wait_and_acquire(resource="search")
 
@@ -200,12 +188,7 @@ class AkshareClient:
                 results.append(result)
 
             # Limit results to 20
-            results = results[:20]
-
-            # Cache the result (30 minutes for search)
-            self.cache_manager.set(cache_key, results, ttl=1800)
-
-            return results
+            return results[:20]
 
         except Exception as e:
             logger.error(f"Error searching stocks: {e}")
@@ -229,14 +212,6 @@ class AkshareClient:
             NotFoundError: If the symbol is not found
             DataFetchError: If data fetching fails
         """
-        # Check cache first
-        cache_key = f"history:{symbol}:{start_date}:{end_date}"
-        cached_data = self.cache_manager.get(cache_key)
-        if cached_data is not None:
-            logger.info(f"Cache hit for historical data: {symbol}")
-            # Convert dict back to DataFrame
-            return pd.DataFrame(cached_data)
-
         # Apply rate limiting
         self.rate_limiter.wait_and_acquire(resource="history")
 
@@ -284,9 +259,6 @@ class AkshareClient:
             if "date" in df.columns:
                 df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
 
-            # Cache the result (1 hour for historical data)
-            self.cache_manager.set(cache_key, df.to_dict("records"), ttl=3600)
-
             return df
 
         except NotFoundError:
@@ -305,13 +277,6 @@ class AkshareClient:
         Returns:
             dict: Stock information including company name, industry, etc.
         """
-        # Check cache first
-        cache_key = f"info:{symbol}"
-        cached_data = self.cache_manager.get(cache_key)
-        if cached_data is not None:
-            logger.info(f"Cache hit for stock info: {symbol}")
-            return cached_data
-
         # Apply rate limiting
         self.rate_limiter.wait_and_acquire(resource="info")
 
@@ -333,9 +298,6 @@ class AkshareClient:
                     if isinstance(value, (str, int, float)) and pd.notna(value):
                         info[col] = value
 
-            # Cache the result (1 hour for stock info)
-            self.cache_manager.set(cache_key, info, ttl=3600)
-
             return info
 
         except NotFoundError:
@@ -345,12 +307,3 @@ class AkshareClient:
             logger.error(f"Error fetching stock info for {symbol}: {e}")
             # Return empty dict instead of raising
             return {}
-
-    def clear_cache(self) -> None:
-        """Clear all cached data."""
-        self.cache_manager.clear()
-        logger.info("Cache cleared")
-
-    def get_cache_stats(self) -> dict:
-        """Get cache statistics."""
-        return self.cache_manager.get_stats()

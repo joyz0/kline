@@ -12,18 +12,11 @@
     "test:cdp": "tsx test/browser/test-cdp-connection.ts",
     "test:playwright": "tsx test/browser/test-playwright-cdp.ts",
     "test:api": "tsx test/browser/test-browser-api.ts",
-    "start:stock-quotes": "node dist/mcp/stock-quotes/index.js",
-    "start:stock-quotes:stdio": "pnpm start -- --transport stdio",
-    "start:stock-quotes:http": "pnpm start -- --transport http --http-host localhost",
-    "dev:stock-quotes": "tsx watch src/mcp/stock-quotes/index.ts --transport stdio",
-    "inspect:stock-quotes": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/stock-quotes/index.js",
-    "start:akshare-service": "node dist/mcp/akshare-service/index.js",
-    "dev:akshare-service": "tsx watch src/mcp/akshare-service/index.ts --transport stdio",
-    "inspect:akshare-service": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/akshare-service/index.js",
-    "dev:akshare-python": "cd akshare && uv run python -m akshare --transport stdio",
-    "start:akshare-python": "cd akshare && python -m akshare --transport stdio",
-    "start:akshare-python:http": "cd akshare && uv run python -m akshare --transport http --http-port 8000",
-    "test:akshare-python": "cd akshare && uv run python example.py"
+    "start:yahoo-finance2": "node dist/mcp/yahoo-finance2/index.js",
+    "start:yahoo-finance2:stdio": "pnpm start -- --transport stdio",
+    "start:yahoo-finance2:http": "pnpm start -- --transport http --http-host localhost",
+    "dev:yahoo-finance2": "tsx watch src/mcp/yahoo-finance2/index.ts --transport stdio",
+    "inspect:yahoo-finance2": "pnpm run build && npx -y @modelcontextprotocol/inspector node dist/mcp/yahoo-finance2/index.js"
   },
   "keywords": [
     "stock",

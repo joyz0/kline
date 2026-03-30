@@ -1,7 +1,7 @@
 """Allow running the package as a module: python -m akshare"""
 
 from core.akshare_client import AkshareClient
-from core.stock_quotes_service import StockQuotesService
+from akshare.src.core.akshare_service import StockQuotesService
 import json
 import sys
 
