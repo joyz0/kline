@@ -21,7 +21,7 @@
 
 ```bash
 cd akshare
-uv venv --python 3.10
+uv venv --python 3.14
 source .venv/bin/activate
 uv sync --extra full
 ```
