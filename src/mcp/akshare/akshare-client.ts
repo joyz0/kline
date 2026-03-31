@@ -1,190 +1,152 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { CallToolResultSchema } from "@modelcontextprotocol/sdk/types.js";
-import { logger } from "../../logging/index.js";
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import { getConfig } from '../../config/index.js';
+import { logger } from '../../logging/index.js';
+import {
+  AkshareMcpExecutionError,
+  AkshareMcpProtocolError,
+  AkshareMcpTransportError,
+} from './errors.js';
+import {
+  AkshareHistoricalDataEnvelopeSchema,
+  AkshareHistoricalDataSchema,
+  AkshareQuoteSchema,
+  AkshareQuotesEnvelopeSchema,
+  AkshareSearchResultsEnvelopeSchema,
+  type AkshareHistoricalData,
+  type AkshareQuote,
+  type AkshareSearchResult,
+} from './zod.schema.js';
 
-export interface AkshareQuote {
-  symbol: string;
-  name?: string;
-  exchange?: string;
-  currency?: string;
-  current_price?: number;
-  change?: number;
-  change_percent?: number;
-  volume?: number;
-  amount?: number;
-  market_cap?: number;
-  pe_ratio?: number;
-  pb_ratio?: number;
-  high_52week?: number;
-  low_52week?: number;
-  open_price?: number;
-  high_price?: number;
-  low_price?: number;
-  pre_close?: number;
-  bid_price?: number;
-  ask_price?: number;
-  bid_volume?: number;
-  ask_volume?: number;
-  avg_daily_volume?: number;
-  turnover_rate?: number;
-  total_shares?: number;
-  float_shares?: number;
-  eps?: number;
-  bvps?: number;
-  dividend_yield?: number;
-  dividend?: number;
-}
-
-export interface AkshareSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-}
-
-export interface AkshareHistoricalData {
-  date: string;
-  open?: number;
-  high?: number;
-  low?: number;
-  close?: number;
-  volume?: number;
-  amount?: number;
-  amplitude?: number;
-  pct_change?: number;
-  change_amount?: number;
-  turnover_rate?: number;
+export interface AkshareClient {
+  getQuote(ticker: string, fields?: string[]): Promise<AkshareQuote>;
+  getQuotes(tickers: string[], fields?: string[]): Promise<AkshareQuote[]>;
+  search(query: string): Promise<AkshareSearchResult[]>;
+  getHistoricalData(
+    ticker: string,
+    fromDate: string,
+    toDate: string,
+    fields?: string[],
+  ): Promise<AkshareHistoricalData[]>;
+  close(): Promise<void>;
 }
 
 export interface AkshareClientConfig {
-  pythonPath?: string;
-  aksharePath?: string;
+  command?: string;
+  args?: string[];
+  cwd?: string;
+  timeoutMs?: number;
 }
 
-export class AkshareClient {
+export class AkshareMcpClient implements AkshareClient {
   private readonly config: AkshareClientConfig;
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
   constructor(config: AkshareClientConfig = {}) {
+    const akshareConfig = getConfig().getAkshareConfig();
+
     this.config = {
-      pythonPath: "python3",
-      aksharePath: "./akshare",
+      command: akshareConfig.command,
+      args: [...akshareConfig.args],
+      cwd: akshareConfig.cwd,
+      timeoutMs: akshareConfig.timeoutMs,
       ...config,
     };
   }
 
   private async initialize(): Promise<void> {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
 
-    logger.info({}, "Initializing MCP Stdio connection to akshare_mcp");
+    if (this.initPromise) {
+      await this.initPromise;
+      return;
+    }
 
-    const cwd = this.config.aksharePath;
+    this.initPromise = this.connect();
+
+    try {
+      await this.initPromise;
+      this.initialized = true;
+    } catch (error) {
+      await this.reset();
+      throw error;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async connect(): Promise<void> {
+    logger.info(
+      {
+        command: this.config.command,
+        args: this.config.args,
+        cwd: this.config.cwd,
+      },
+      'Initializing MCP connection to Akshare server',
+    );
 
     this.transport = new StdioClientTransport({
-      command: "uv",
-      args: ["run", "akshare_mcp"],
-      cwd,
+      command: this.config.command!,
+      args: this.config.args!,
+      cwd: this.config.cwd,
       env: process.env as Record<string, string>,
     });
 
     this.client = new Client(
       {
-        name: "akshare-typescript-client",
-        version: "1.0.0",
+        name: 'akshare-typescript-client',
+        version: '1.0.0',
       },
       {
         capabilities: {},
       },
     );
 
-    await this.client.connect(this.transport);
-    this.initialized = true;
-    logger.info({}, "MCP Stdio connection established");
+    try {
+      await this.client.connect(this.transport);
+      logger.info({}, 'Akshare MCP connection established');
+    } catch (error) {
+      throw new AkshareMcpTransportError(
+        error instanceof Error ? error.message : 'Failed to connect to Akshare MCP server',
+      );
+    }
   }
 
   async getQuote(ticker: string, fields?: string[]): Promise<AkshareQuote> {
-    await this.initialize();
-
     const args: Record<string, unknown> = { ticker };
     if (fields && fields.length > 0) {
       args.fields = fields;
     }
 
-    logger.info({ ticker, args }, "Calling get_stock_quote via MCP");
-
-    const result = CallToolResultSchema.parse(
-      await this.client!.callTool({
-        name: "get_stock_quote",
-        arguments: args,
-      }),
-    );
-
-    const content = result.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from MCP");
-    }
-
-    const quote = JSON.parse(content.text) as AkshareQuote;
-    logger.info({ ticker, success: true }, "Quote fetched via MCP");
-    return quote;
+    const payload = await this.callStructuredTool<unknown>('get_stock_quote', args);
+    return AkshareQuoteSchema.parse(payload);
   }
 
-  async getQuotes(
-    tickers: string[],
-    fields?: string[],
-  ): Promise<AkshareQuote[]> {
-    await this.initialize();
-
+  async getQuotes(tickers: string[], fields?: string[]): Promise<AkshareQuote[]> {
     const args: Record<string, unknown> = { tickers };
     if (fields && fields.length > 0) {
       args.fields = fields;
     }
 
-    logger.info({ tickers, args }, "Calling get_stock_quotes via MCP");
+    const payload = await this.callStructuredTool<unknown>('get_stock_quotes', args);
 
-    const result = CallToolResultSchema.parse(
-      await this.client!.callTool({
-        name: "get_stock_quotes",
-        arguments: args,
-      }),
-    );
-
-    const content = result.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from MCP");
+    if (Array.isArray(payload)) {
+      return payload.map((item) => AkshareQuoteSchema.parse(item));
     }
 
-    const quotes = JSON.parse(content.text) as AkshareQuote[];
-    logger.info({ tickers, count: quotes.length }, "Quotes fetched via MCP");
-    return quotes;
+    const parsed = AkshareQuotesEnvelopeSchema.parse(payload);
+    return parsed.quotes;
   }
 
   async search(query: string): Promise<AkshareSearchResult[]> {
-    await this.initialize();
-
-    logger.info({ query }, "Calling search_stocks via MCP");
-
-    const result = CallToolResultSchema.parse(
-      await this.client!.callTool({
-        name: "search_stocks",
-        arguments: { query },
-      }),
-    );
-
-    const content = result.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from MCP");
-    }
-
-    const parsed = JSON.parse(content.text) as {
-      results: AkshareSearchResult[];
-    };
-    logger.info(
-      { query, count: parsed.results.length },
-      "Search completed via MCP",
-    );
+    const payload = await this.callStructuredTool<unknown>('search_stocks', { query });
+    const parsed = AkshareSearchResultsEnvelopeSchema.parse(payload);
     return parsed.results;
   }
 
@@ -194,52 +156,104 @@ export class AkshareClient {
     toDate: string,
     fields?: string[],
   ): Promise<AkshareHistoricalData[]> {
-    await this.initialize();
-
     const args: Record<string, unknown> = {
       ticker,
       from_date: fromDate,
       to_date: toDate,
+      fromDate,
+      toDate,
     };
+
     if (fields && fields.length > 0) {
       args.fields = fields;
     }
 
-    logger.info(
-      { ticker, fromDate, toDate },
-      "Calling get_historical_data via MCP",
-    );
-
-    const result = CallToolResultSchema.parse(
-      await this.client!.callTool({
-        name: "get_historical_data",
-        arguments: args,
-      }),
-    );
-
-    const content = result.content[0];
-    if (content.type !== "text") {
-      throw new Error("Unexpected response type from MCP");
-    }
-
-    const parsed = JSON.parse(content.text) as {
-      closingPrices: AkshareHistoricalData[];
-    };
-    logger.info(
-      { ticker, count: parsed.closingPrices.length },
-      "Historical data fetched via MCP",
-    );
-    return parsed.closingPrices;
+    const payload = await this.callStructuredTool<unknown>('get_historical_data', args);
+    const parsed = AkshareHistoricalDataEnvelopeSchema.parse(payload);
+    const data = parsed.historicalData ?? parsed.closingPrices ?? [];
+    return data.map((item) => AkshareHistoricalDataSchema.parse(item));
   }
 
   async close(): Promise<void> {
-    if (this.client) {
-      await this.client.close();
-      this.client = null;
+    try {
+      if (this.client) {
+        await this.client.close();
+      }
+    } finally {
+      await this.reset();
+      logger.info({}, 'Akshare MCP connection closed');
     }
+  }
+
+  private async callStructuredTool<T>(
+    toolName: string,
+    args: Record<string, unknown>,
+  ): Promise<T> {
+    await this.initialize();
+
+    if (!this.client) {
+      throw new AkshareMcpTransportError('Akshare MCP client is not initialized');
+    }
+
+    logger.info({ toolName, args }, 'Calling Akshare MCP tool');
+
+    let result: unknown;
+    try {
+      const call = this.client.callTool({
+        name: toolName,
+        arguments: args,
+      });
+      result = await this.withTimeout(call);
+    } catch (error) {
+      throw new AkshareMcpExecutionError(
+        error instanceof Error ? error.message : `Akshare MCP tool failed: ${toolName}`,
+      );
+    }
+
+    const parsedResult = CallToolResultSchema.parse(result);
+
+    if (parsedResult.structuredContent !== undefined) {
+      return parsedResult.structuredContent as T;
+    }
+
+    const textContent = parsedResult.content.find((content) => content.type === 'text');
+    if (!textContent || typeof textContent.text !== 'string') {
+      throw new AkshareMcpProtocolError(
+        `Akshare MCP tool ${toolName} returned no structured content or text payload`,
+      );
+    }
+
+    try {
+      return JSON.parse(textContent.text) as T;
+    } catch (error) {
+      throw new AkshareMcpProtocolError(
+        error instanceof Error ? error.message : 'Failed to parse Akshare MCP text payload',
+      );
+    }
+  }
+
+  private async withTimeout<T>(promise: Promise<T>): Promise<T> {
+    const timeoutMs = this.config.timeoutMs;
+    if (!timeoutMs || timeoutMs <= 0) {
+      return promise;
+    }
+
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        setTimeout(() => {
+          reject(new AkshareMcpTransportError(`Akshare MCP request timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  }
+
+  private async reset(): Promise<void> {
+    this.client = null;
+    this.transport = null;
     this.initialized = false;
-    logger.info({}, "MCP Stdio connection closed");
+    this.initPromise = null;
   }
 }
 
-export const akshareClient = new AkshareClient();
+export const akshareClient = new AkshareMcpClient();

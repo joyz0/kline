@@ -1,0 +1,1 @@
+"""Akshare MCP server package."""

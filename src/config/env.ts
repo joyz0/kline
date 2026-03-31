@@ -37,6 +37,13 @@ const envSchema = z.object({
 
   // Logging
   LOG_LEVEL: z.string().default(DEFAULT_ENV.LOG_LEVEL),
+
+  // Akshare
+  AKSHARE_ENABLED: z.string().default(DEFAULT_ENV.AKSHARE_ENABLED),
+  AKSHARE_TRANSPORT: z.string().default(DEFAULT_ENV.AKSHARE_TRANSPORT),
+  AKSHARE_COMMAND: z.string().default(DEFAULT_ENV.AKSHARE_COMMAND),
+  AKSHARE_CWD: z.string().default(DEFAULT_ENV.AKSHARE_CWD),
+  AKSHARE_TIMEOUT_MS: z.string().default(DEFAULT_ENV.AKSHARE_TIMEOUT_MS),
 });
 
 export type Env = z.infer<typeof envSchema>;

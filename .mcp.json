@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "akshare": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "python",
+        "--python",
+        "3.12",
+        "akshare-mcp-server"
+      ],
+      "cwd": "./python"
+    }
+  }
+}

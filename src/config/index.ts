@@ -14,6 +14,7 @@ import {
   type RateLimitConfig,
   type AnalysisConfig,
   type LoggingConfig,
+  type AkshareConfig,
 } from './app-config.schema.js';
 import {
   browserConfigSchema,
@@ -28,6 +29,7 @@ import {
   DEFAULT_RATE_LIMIT,
   DEFAULT_ANALYSIS,
   DEFAULT_LOGGING,
+  DEFAULT_AKSHARE,
   KLINE_BASE_DIR,
   deepMerge,
 } from './config-defaults.js';
@@ -44,6 +46,7 @@ export interface UnifiedConfig {
   rateLimit?: RateLimitConfig;
   analysis?: AnalysisConfig;
   logging?: LoggingConfig;
+  akshare?: AkshareConfig;
 }
 
 export class ConfigLoader {
@@ -163,6 +166,13 @@ export class ConfigLoader {
           ]),
         ),
       },
+      akshare: config.akshare
+        ? {
+            ...config.akshare,
+            cwd: pathResolver.resolve(config.akshare.cwd),
+            args: [...config.akshare.args],
+          }
+        : undefined,
     };
   }
 
@@ -180,6 +190,7 @@ export class ConfigLoader {
         rateLimit: DEFAULT_RATE_LIMIT,
         analysis: DEFAULT_ANALYSIS,
         logging: DEFAULT_LOGGING,
+        akshare: DEFAULT_AKSHARE,
       },
       parsed,
     );
@@ -192,6 +203,7 @@ export class ConfigLoader {
       rateLimit: mergedConfig.rateLimit,
       analysis: mergedConfig.analysis,
       logging: mergedConfig.logging,
+      akshare: mergedConfig.akshare,
     };
 
     const appConfigResult = appConfigSchema.safeParse(appConfigData);
@@ -228,6 +240,7 @@ export class ConfigLoader {
       rateLimit: appConfigResult.data.rateLimit,
       analysis: appConfigResult.data.analysis,
       logging: appConfigResult.data.logging,
+      akshare: appConfigResult.data.akshare,
     };
   }
 
@@ -252,6 +265,10 @@ export class ConfigLoader {
       rateLimit: { ...DEFAULT_RATE_LIMIT },
       analysis: { ...DEFAULT_ANALYSIS },
       logging: { ...DEFAULT_LOGGING },
+      akshare: {
+        ...DEFAULT_AKSHARE,
+        args: [...DEFAULT_AKSHARE.args],
+      },
     };
 
     // 解析默认配置中的路径
@@ -336,6 +353,13 @@ export class ConfigLoader {
   }
 
   /**
+   * 获取 Akshare 配置
+   */
+  getAkshareConfig(): AkshareConfig {
+    return this.getConfig().akshare ?? { ...DEFAULT_AKSHARE, args: [...DEFAULT_AKSHARE.args] };
+  }
+
+  /**
    * 保存配置
    */
   saveConfig(config: Partial<UnifiedConfig>): void {
@@ -393,6 +417,10 @@ export function getBrowserConfig() {
   return ConfigLoader.getInstance().getBrowserConfig();
 }
 
+export function getAkshareConfig() {
+  return ConfigLoader.getInstance().getAkshareConfig();
+}
+
 // 导出默认值常量
 export {
   DEFAULT_SERVER,
@@ -402,6 +430,7 @@ export {
   DEFAULT_RATE_LIMIT,
   DEFAULT_ANALYSIS,
   DEFAULT_LOGGING,
+  DEFAULT_AKSHARE,
   DEFAULT_ENV,
   KLINE_BASE_DIR,
 } from './config-defaults.js';

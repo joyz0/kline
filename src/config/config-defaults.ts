@@ -84,6 +84,15 @@ export const DEFAULT_LOGGING = {
   level: 4, // 0=fatal, 1=error, 2=warn, 3=info, 4=debug, 5=trace
 } as const;
 
+export const DEFAULT_AKSHARE = {
+  enabled: true,
+  transport: 'stdio' as const,
+  command: 'uv',
+  args: ['run', '--project', 'python', '--python', '3.12', 'akshare-mcp-server'] as const,
+  cwd: '.',
+  timeoutMs: 15000,
+} as const;
+
 // ==================== 环境变量默认值 ====================
 export const DEFAULT_ENV = {
   // Server
@@ -119,6 +128,13 @@ export const DEFAULT_ENV = {
 
   // Logging
   LOG_LEVEL: '4',
+
+  // Akshare
+  AKSHARE_ENABLED: 'true',
+  AKSHARE_TRANSPORT: 'stdio',
+  AKSHARE_COMMAND: 'uv',
+  AKSHARE_CWD: '.',
+  AKSHARE_TIMEOUT_MS: '15000',
 } as const;
 
 // ==================== 配置合并工具函数 ====================

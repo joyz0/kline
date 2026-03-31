@@ -46,6 +46,16 @@ const loggingConfigSchema = z.object({
   level: z.number().int().min(0).max(5).default(4),
 });
 
+const akshareConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  transport: z.enum(['stdio', 'http']).default('stdio'),
+  command: z.string().default('uv'),
+  args: z.array(z.string()).default(['run', '--project', 'python', '--python', '3.12', 'akshare-mcp-server']),
+  cwd: z.string().default('.'),
+  timeoutMs: z.number().int().positive().default(15000),
+  httpUrl: z.string().optional(),
+});
+
 export const appConfigSchema = z.object({
   server: serverConfigSchema,
   redis: redisConfigSchema,
@@ -55,6 +65,7 @@ export const appConfigSchema = z.object({
   rateLimit: rateLimitConfigSchema.optional(),
   analysis: analysisConfigSchema.optional(),
   logging: loggingConfigSchema.optional(),
+  akshare: akshareConfigSchema.optional(),
 });
 
 export type AppConfig = z.infer<typeof appConfigSchema>;
@@ -66,3 +77,4 @@ export type LLMConfig = z.infer<typeof llmConfigSchema>;
 export type RateLimitConfig = z.infer<typeof rateLimitConfigSchema>;
 export type AnalysisConfig = z.infer<typeof analysisConfigSchema>;
 export type LoggingConfig = z.infer<typeof loggingConfigSchema>;
+export type AkshareConfig = z.infer<typeof akshareConfigSchema>;

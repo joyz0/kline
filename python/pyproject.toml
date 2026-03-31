@@ -1,0 +1,25 @@
+[project]
+name = "akshare-mcp-server"
+version = "0.1.0"
+description = "Standalone Akshare MCP server for the kline project"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "akshare",
+  "cachetools",
+  "curl-cffi==0.13.0",
+  "mcp",
+  "pandas",
+  "pydantic>=2,<3",
+  "pyrate-limiter",
+]
+
+[project.scripts]
+akshare-mcp-server = "akshare_mcp_server.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
